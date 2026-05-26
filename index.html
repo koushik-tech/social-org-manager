@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Social Org Management System</title>
+  <!-- PWA Manifest & Theme Color -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6366f1">
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="app.css">
+  <!-- FontAwesome Icons for premium visual feel -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Mockup Phone Shell for Desktop, Full-screen on Mobile -->
+  <div class="phone-wrapper">
+    <div class="app-container">
+
+      <!-- Toast Alert Notifications Container -->
+      <div id="toast-container" class="toast-container"></div>
+
+      <!-- Full-screen Loading Overlay Spinner -->
+      <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loading-text">Loading...</div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 1. LOGIN SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-login" class="screen active">
+        <div class="login-container">
+          <div class="login-brand">
+            <div class="login-logo">
+              <i class="fa-solid fa-people-roof"></i>
+            </div>
+            <h2>Social System</h2>
+            <p>Organisation Management Portal</p>
+          </div>
+
+          <form id="login-form">
+            <div class="form-group">
+              <label for="login-username">Username</label>
+              <div class="input-container">
+                <i class="fa-solid fa-user"></i>
+                <input type="text" id="login-username" class="form-control" placeholder="Enter username" required value="admin">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <div class="input-container">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" id="login-password" class="form-control" placeholder="Enter password" required value="password123">
+              </div>
+            </div>
+
+            <div class="login-checkbox-group" id="btn-remember-group">
+              <input type="checkbox" id="login-remember" checked>
+              <span>Keep me logged in</span>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%; padding:16px;">
+              <i class="fa-solid fa-right-to-bracket"></i> Log In
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 2. DASHBOARD SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-dashboard" class="screen">
+        <div class="app-header">
+          <div>
+            <div class="welcome-note" id="user-greeting">Welcome, User</div>
+            <h1>Dashboard</h1>
+          </div>
+          <button class="btn-logout" id="btn-logout" title="Log Out">
+            <i class="fa-solid fa-power-off"></i>
+          </button>
+        </div>
+
+        <!-- Quick Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-card stat-persons" id="stat-persons-trigger">
+            <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-value" id="stat-total-persons">0</div>
+            <div class="stat-label">Total Persons</div>
+          </div>
+          <div class="stat-card stat-depts" id="stat-depts-trigger">
+            <div class="stat-icon"><i class="fa-solid fa-sitemap"></i></div>
+            <div class="stat-value" id="stat-total-depts">0</div>
+            <div class="stat-label">Departments</div>
+          </div>
+          <div class="stat-card stat-events" id="stat-events-trigger">
+            <div class="stat-icon"><i class="fa-solid fa-calendar-days"></i></div>
+            <div class="stat-value" id="stat-total-events">0</div>
+            <div class="stat-label">Total Events</div>
+          </div>
+          <div class="stat-card stat-upcoming" id="stat-upcoming-trigger">
+            <div class="stat-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div class="stat-value" id="stat-upcoming-events">0</div>
+            <div class="stat-label">Upcoming</div>
+          </div>
+        </div>
+
+        <!-- Large Tactile Buttons (Action Cards) -->
+        <h2 class="section-title"><i class="fa-solid fa-compass"></i> Quick Navigation</h2>
+        <div class="action-menu">
+          <div class="action-btn-card btn-persons" id="action-persons">
+            <div class="action-btn-left">
+              <div class="action-btn-icon"><i class="fa-solid fa-user-group"></i></div>
+              <div class="action-btn-text">
+                <h3>Persons Directory</h3>
+                <p>Manage members, categories & contact details</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right chevron"></i>
+          </div>
+
+          <div class="action-btn-card btn-depts" id="action-depts">
+            <div class="action-btn-left">
+              <div class="action-btn-icon"><i class="fa-solid fa-diagram-project"></i></div>
+              <div class="action-btn-text">
+                <h3>Departments Tree</h3>
+                <p>Explore cultural, sports, and social wings</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right chevron"></i>
+          </div>
+
+          <div class="action-btn-card btn-events" id="action-events">
+            <div class="action-btn-left">
+              <div class="action-btn-icon"><i class="fa-solid fa-calendar-check"></i></div>
+              <div class="action-btn-text">
+                <h3>Event Schedules</h3>
+                <p>Track activities and assign participants</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right chevron"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 3. PERSONS SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-persons" class="screen">
+        <div class="app-header">
+          <div>
+            <div class="welcome-note">DIRECTORY</div>
+            <h1>Persons</h1>
+          </div>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="search-filter-section">
+          <div class="search-container">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="persons-search" class="search-input" placeholder="Search by name...">
+          </div>
+          <div class="chips-container" id="persons-filter-chips">
+            <div class="chip active" data-category="all">All</div>
+            <div class="chip" data-category="Member">Member</div>
+            <div class="chip" data-category="Student">Student</div>
+            <div class="chip" data-category="Teacher">Teacher</div>
+            <div class="chip" data-category="Well Wishers">Well Wishers</div>
+          </div>
+        </div>
+
+        <!-- Persons Cards List -->
+        <div class="cards-list" id="persons-list-container">
+          <!-- Dynamically Rendered -->
+        </div>
+
+        <!-- FAB - Add Person -->
+        <button class="fab" id="fab-add-person" title="Add New Person">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 4. EVENTS SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-events" class="screen">
+        <div class="app-header">
+          <div>
+            <div class="welcome-note">Schedules</div>
+            <h1>Events</h1>
+          </div>
+        </div>
+
+        <!-- Events Cards List -->
+        <div class="cards-list" id="events-list-container" style="margin-top: 10px;">
+          <!-- Dynamically Rendered -->
+        </div>
+
+        <!-- FAB - Add Event -->
+        <button class="fab" id="fab-add-event" title="Create Event">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- BOTTOM TAB NAVIGATION -->
+      <!-- ============================================== -->
+      <nav class="bottom-nav" id="app-bottom-nav">
+        <div class="nav-item" id="nav-home" data-screen="screen-dashboard">
+          <i class="fa-solid fa-house"></i>
+          <span>Home</span>
+        </div>
+        <div class="nav-item" id="nav-persons" data-screen="screen-persons">
+          <i class="fa-solid fa-users"></i>
+          <span>Persons</span>
+        </div>
+        <div class="nav-item" id="nav-events" data-screen="screen-events">
+          <i class="fa-solid fa-calendar-days"></i>
+          <span>Events</span>
+        </div>
+      </nav>
+
+      <!-- ============================================== -->
+      <!-- REUSABLE SHEET MODAL OVERLAY -->
+      <!-- ============================================== -->
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content" id="modal-content">
+          <div class="modal-handle"></div>
+          <div class="modal-header">
+            <h2 id="modal-title">Details</h2>
+            <button class="modal-close-btn" id="modal-close" title="Close">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div id="modal-body">
+            <!-- Dynamic Modal Content Templates -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Scripts: Loaded sequentially to construct database, auth, and routing -->
+  <script src="auth.js"></script>
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('Service Worker Registered successfully', reg.scope))
+          .catch((err) => console.log('Service Worker Registration failed', err));
+      });
+    }
+  </script>
+</body>
+</html>
