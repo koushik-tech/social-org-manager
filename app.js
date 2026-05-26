@@ -10,18 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
     login: document.getElementById('screen-login'),
     dashboard: document.getElementById('screen-dashboard'),
     persons: document.getElementById('screen-persons'),
+    subscription: document.getElementById('screen-subscription'),
     events: document.getElementById('screen-events')
   };
 
   const navItems = {
     home: document.getElementById('nav-home'),
     persons: document.getElementById('nav-persons'),
+    subscription: document.getElementById('nav-subscription'),
     events: document.getElementById('nav-events')
   };
 
   const bottomNav = document.getElementById('app-bottom-nav');
   const loginForm = document.getElementById('login-form');
   const btnLogout = document.getElementById('btn-logout');
+  const btnCloudSync = document.getElementById('btn-cloud-sync');
   const toastContainer = document.getElementById('toast-container');
   const loadingOverlay = document.getElementById('loading-overlay');
   const loadingText = document.getElementById('loading-text');
@@ -49,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const quickLinks = {
     persons: document.getElementById('action-persons'),
     depts: document.getElementById('action-depts'),
+    subscription: document.getElementById('action-subscription'),
     events: document.getElementById('action-events')
   };
 
@@ -58,6 +62,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const personsListContainer = document.getElementById('persons-list-container');
   const fabAddPerson = document.getElementById('fab-add-person');
 
+  // Subscription Screen Search & Filter Selectors
+  const subscriptionSearch = document.getElementById('subscription-search');
+  const subscriptionFilterChips = document.getElementById('subscription-filter-chips');
+  const subscriptionListContainer = document.getElementById('subscription-list-container');
+
   // Events Screen Selectors
   const eventsListContainer = document.getElementById('events-list-container');
   const fabAddEvent = document.getElementById('fab-add-event');
@@ -66,6 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentActiveScreen = 'screen-login';
   let activePersonFilter = 'all';
   let personSearchQuery = '';
+  let activeSubscriptionFilter = 'all';
+  let subscriptionSearchQuery = '';
   let departmentsCache = [];
 
   // ==============================================
@@ -79,10 +90,40 @@ document.addEventListener('DOMContentLoaded', () => {
       bottomNav.style.display = 'flex';
       switchScreen('screen-dashboard');
       loadDashboardStats();
+      updateCloudStatusUI();
     } else {
       bottomNav.style.display = 'none';
       switchScreen('screen-login');
     }
+  };
+
+  const updateCloudStatusUI = () => {
+    const status = window.ApiService.getCloudStatus();
+    const welcomeNote = document.getElementById('user-greeting');
+    if (!welcomeNote) return;
+    
+    // Remove any existing cloud indicator
+    const existingInd = welcomeNote.parentNode.querySelector('.cloud-status-indicator');
+    if (existingInd) existingInd.remove();
+    
+    const ind = document.createElement('div');
+    ind.className = `cloud-status-indicator ${status.provider}`;
+    
+    let providerText = 'Local Offline';
+    let dotClass = 'inactive';
+    if (status.provider === 'supabase') {
+      providerText = 'Supabase Cloud';
+      dotClass = 'active';
+    } else if (status.provider === 'firebase') {
+      providerText = 'Firebase Cloud';
+      dotClass = 'active';
+    }
+    
+    ind.innerHTML = `
+      <span class="cloud-indicator-dot ${dotClass}"></span>
+      <span>${providerText}</span>
+    `;
+    welcomeNote.parentNode.appendChild(ind);
   };
 
   // Switch between views with custom transition animations
@@ -106,6 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (screenId === 'screen-persons') {
       navItems.persons.classList.add('active');
       renderPersonsList();
+    } else if (screenId === 'screen-subscription') {
+      navItems.subscription.classList.add('active');
+      renderSubscriptionList();
     } else if (screenId === 'screen-events') {
       navItems.events.classList.add('active');
       renderEventsList();
@@ -215,6 +259,242 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 600);
   });
 
+  if (btnCloudSync) {
+    btnCloudSync.addEventListener('click', () => {
+      openCloudSyncModal();
+    });
+  }
+
+  const openCloudSyncModal = () => {
+    const config = JSON.parse(localStorage.getItem('social_org_cloud_config') || '{"provider":"none"}');
+    
+    const contentHTML = `
+      <div class="form-view" style="padding-bottom: 20px;">
+        <div class="cloud-info-box">
+          <i class="fa-solid fa-circle-info"></i>
+          Configure a free database to synchronize your data automatically across all devices.
+        </div>
+        
+        <div class="form-group">
+          <label>Select Cloud Provider</label>
+          <div class="cloud-provider-toggle" id="cloud-provider-toggle">
+            <button type="button" class="provider-btn \${selectedProvider === 'none' ? 'active' : ''}" data-provider="none">
+              <i class="fa-solid fa-hard-drive"></i>
+              <span>Local Only</span>
+            </button>
+            <button type="button" class="provider-btn \${selectedProvider === 'supabase' ? 'active' : ''}" data-provider="supabase">
+              <i class="fa-solid fa-bolt"></i>
+              <span>Supabase</span>
+            </button>
+            <button type="button" class="provider-btn \${selectedProvider === 'firebase' ? 'active' : ''}" data-provider="firebase">
+              <i class="fa-solid fa-fire"></i>
+              <span>Firebase</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Supabase Form Fields -->
+        <div class="cloud-config-section" id="sec-supabase">
+          <div class="form-group">
+            <label for="cloud-sb-url">Supabase Project URL</label>
+            <div class="input-container">
+              <i class="fa-solid fa-link"></i>
+              <input type="url" id="cloud-sb-url" class="form-control" placeholder="https://yourproject.supabase.co" value="">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="cloud-sb-key">Supabase Anon Key</label>
+            <div class="input-container">
+              <i class="fa-solid fa-key"></i>
+              <input type="password" id="cloud-sb-key" class="form-control" placeholder="eyJhbGciOi..." value="">
+            </div>
+          </div>
+        </div>
+        
+        <!-- Firebase Form Fields -->
+        <div class="cloud-config-section" id="sec-firebase">
+          <div class="form-group">
+            <label for="cloud-fb-config">Firebase Configuration JSON</label>
+            <textarea id="cloud-fb-config" class="form-control" style="font-family: monospace; font-size: 0.8rem; height: 110px; padding: 12px;" placeholder='{\\n  "apiKey": "...",\\n  "authDomain": "...",\\n  "projectId": "..."\\n}'></textarea>
+          </div>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+          <button type="button" class="btn btn-secondary" id="btn-test-cloud" style="width:100%; padding:14px;">
+            <i class="fa-solid fa-vial"></i> Test Database Connection
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-save-cloud" style="width:100%; padding:14px;">
+            <i class="fa-solid fa-floppy-disk"></i> Save & Connect Database
+          </button>
+        </div>
+        
+        <!-- Sync Migration Actions -->
+        <div class="sync-tools-grid" id="sync-tools-grid" style="display: none;">
+          <button type="button" class="btn btn-contact btn-sync-tool" id="btn-push-local" style="justify-content:center;">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Push Local to Cloud
+          </button>
+          <button type="button" class="btn btn-contact btn-sync-tool" id="btn-pull-cloud" style="justify-content:center;">
+            <i class="fa-solid fa-cloud-arrow-down"></i> Pull Cloud to Local
+          </button>
+        </div>
+      </div>
+    `;
+    
+    openModal('Cloud Sync Settings', contentHTML);
+    
+    // Set dynamic values in input fields
+    const toggleButtons = document.querySelectorAll('.provider-btn');
+    const secSupabase = document.getElementById('sec-supabase');
+    const secFirebase = document.getElementById('sec-firebase');
+    const syncToolsGrid = document.getElementById('sync-tools-grid');
+    const sbUrlInput = document.getElementById('cloud-sb-url');
+    const sbKeyInput = document.getElementById('cloud-sb-key');
+    const fbConfigText = document.getElementById('cloud-fb-config');
+    
+    let activeProv = config.provider || 'none';
+    
+    // Pre-populate fields
+    if (activeProv === 'supabase') {
+      secSupabase.classList.add('active');
+      syncToolsGrid.style.display = 'grid';
+      toggleButtons.forEach(b => {
+        if (b.getAttribute('data-provider') === 'supabase') b.classList.add('active');
+        else b.classList.remove('active');
+      });
+    } else if (activeProv === 'firebase') {
+      secFirebase.classList.add('active');
+      syncToolsGrid.style.display = 'grid';
+      toggleButtons.forEach(b => {
+        if (b.getAttribute('data-provider') === 'firebase') b.classList.add('active');
+        else b.classList.remove('active');
+      });
+    } else {
+      toggleButtons.forEach(b => {
+        if (b.getAttribute('data-provider') === 'none') b.classList.add('active');
+        else b.classList.remove('active');
+      });
+    }
+    
+    sbUrlInput.value = config.supabaseUrl || '';
+    sbKeyInput.value = config.supabaseAnonKey || '';
+    fbConfigText.value = config.firebaseConfig || '';
+    
+    // Setup manual switching logic
+    document.getElementById('cloud-provider-toggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('.provider-btn');
+      if (!btn) return;
+      
+      toggleButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeProv = btn.getAttribute('data-provider');
+      
+      secSupabase.classList.remove('active');
+      secFirebase.classList.remove('active');
+      
+      if (activeProv === 'supabase') {
+        secSupabase.classList.add('active');
+        syncToolsGrid.style.display = 'grid';
+      } else if (activeProv === 'firebase') {
+        secFirebase.classList.add('active');
+        syncToolsGrid.style.display = 'grid';
+      } else {
+        syncToolsGrid.style.display = 'none';
+      }
+    });
+    
+    // Bind Connection Test
+    document.getElementById('btn-test-cloud').addEventListener('click', async () => {
+      const sbUrl = sbUrlInput.value.trim();
+      const sbKey = sbKeyInput.value.trim();
+      const fbConfig = fbConfigText.value.trim();
+      
+      const testConfig = {
+        provider: activeProv,
+        supabaseUrl: sbUrl,
+        supabaseAnonKey: sbKey,
+        firebaseConfig: fbConfig
+      };
+      
+      showLoader('Verifying keys...');
+      try {
+        await window.ApiService.testConnection(testConfig);
+        hideLoader();
+        showToast('Connection successfully verified!', 'success');
+      } catch (err) {
+        hideLoader();
+        showToast(err.message, 'error');
+      }
+    });
+    
+    // Bind Save
+    document.getElementById('btn-save-cloud').addEventListener('click', async () => {
+      const sbUrl = sbUrlInput.value.trim();
+      const sbKey = sbKeyInput.value.trim();
+      const fbConfig = fbConfigText.value.trim();
+      
+      const newConfig = {
+        provider: activeProv,
+        supabaseUrl: sbUrl,
+        supabaseAnonKey: sbKey,
+        firebaseConfig: fbConfig
+      };
+      
+      showLoader('Connecting cloud...');
+      try {
+        if (activeProv !== 'none') {
+          await window.ApiService.testConnection(newConfig);
+        }
+        
+        localStorage.setItem('social_org_cloud_config', JSON.stringify(newConfig));
+        window.ApiService.reloadConfig();
+        
+        hideLoader();
+        closeModal();
+        showToast('Configuration saved successfully.', 'success');
+        
+        updateCloudStatusUI();
+        loadDashboardStats();
+      } catch (err) {
+        hideLoader();
+        showToast(err.message, 'error');
+      }
+    });
+    
+    // Push Local Data
+    document.getElementById('btn-push-local').addEventListener('click', async () => {
+      const confirmPush = confirm('Push all members and events on this browser to your cloud? This will overwrite existing items on the server.');
+      if (!confirmPush) return;
+      
+      showLoader('Uploading local database...');
+      try {
+        await window.ApiService.uploadLocalToCloud();
+        hideLoader();
+        showToast('Local database successfully synchronized up!', 'success');
+        loadDashboardStats();
+      } catch (err) {
+        hideLoader();
+        showToast(err.message, 'error');
+      }
+    });
+    
+    // Pull Cloud Data
+    document.getElementById('btn-pull-cloud').addEventListener('click', async () => {
+      const confirmPull = confirm('Replace your offline cache with the database from the cloud? Any offline updates not pushed will be replaced.');
+      if (!confirmPull) return;
+      
+      showLoader('Downloading database...');
+      try {
+        await window.ApiService.downloadCloudToLocal();
+        hideLoader();
+        showToast('Cloud database downloaded successfully!', 'success');
+        loadDashboardStats();
+      } catch (err) {
+        hideLoader();
+        showToast(err.message, 'error');
+      }
+    });
+  };
+
   // ==============================================
   // 5. NAVIGATION BINDINGS
   // ==============================================
@@ -235,6 +515,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Dashboard action buttons shortcut clicks
   quickLinks.persons.addEventListener('click', () => switchScreen('screen-persons'));
   quickLinks.events.addEventListener('click', () => switchScreen('screen-events'));
+  if (quickLinks.subscription) {
+    quickLinks.subscription.addEventListener('click', () => switchScreen('screen-subscription'));
+  }
 
   // ==============================================
   // 6. DASHBOARD STATISTICS DATA LAYER
@@ -493,6 +776,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <i class="fa-solid fa-envelope"></i>
               <span>${person.email}</span>
             </div>
+            <div class="detail-row">
+              <i class="fa-solid fa-credit-card"></i>
+              <span>Sub Cleared Upto: ${person.subscriptionClearedUpto || 'None'}</span>
+            </div>
             <div class="card-depts-tags">
               ${deptTagsHTML || '<span class="dept-tag">No Departments Assigned</span>'}
             </div>
@@ -575,6 +862,13 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="detail-item-title">Registered Departments</div>
               <div class="card-depts-tags" style="margin-top: 6px; margin-bottom: 14px;">
                 ${deptTagsHTML || '<span class="dept-tag">No wings assigned</span>'}
+              </div>
+            </div>
+
+            <div>
+              <div class="detail-item-title">Subscription Status</div>
+              <div style="margin-top: 6px; margin-bottom: 14px;">
+                ${getSubscriptionBadgeHTML(person.subscriptionClearedUpto)}
               </div>
             </div>
 
@@ -747,6 +1041,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <div class="form-group">
+              <label for="form-person-sub">Subscription Cleared Upto</label>
+              <div class="input-container">
+                <i class="fa-solid fa-calendar-check"></i>
+                <input type="month" id="form-person-sub" class="form-control" style="padding-left:44px;" required value="${isEditMode ? (personToEdit.subscriptionClearedUpto || new Date().toISOString().substring(0, 7)) : new Date().toISOString().substring(0, 7)}">
+              </div>
+            </div>
+
+            <div class="form-group">
               <label for="form-person-address">Home Address</label>
               <textarea id="form-person-address" class="form-control" placeholder="Enter complete address">${isEditMode ? personToEdit.address : ''}</textarea>
             </div>
@@ -787,6 +1089,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const categoryVal = document.getElementById('form-person-category').value;
         const phoneVal = document.getElementById('form-person-phone').value.trim();
         const emailVal = document.getElementById('form-person-email').value.trim();
+        const subVal = document.getElementById('form-person-sub').value || new Date().toISOString().substring(0, 7);
         const addressVal = document.getElementById('form-person-address').value.trim();
 
         // 2. Fetch all checked departments
@@ -808,6 +1111,7 @@ document.addEventListener('DOMContentLoaded', () => {
           phone: phoneVal,
           email: emailVal,
           departments: selectedDepts,
+          subscriptionClearedUpto: subVal,
           address: addressVal
         };
 
@@ -1075,6 +1379,177 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   fabAddEvent.addEventListener('click', openEventFormModal);
+
+  // ==============================================
+  // 11. SUBSCRIPTION MODULE RENDERING & FLOWS
+  // ==============================================
+
+  const getSubscriptionBadgeHTML = (dateString) => {
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    const isCleared = dateString && dateString >= currentMonth;
+    const readableDate = dateString ? new Date(dateString + '-02').toLocaleString('default', { month: 'long', year: 'numeric' }) : 'None';
+    
+    if (isCleared) {
+      return `
+        <span class="status-badge status-badge-cleared">
+          <i class="fa-solid fa-circle-check"></i> Cleared: ${readableDate}
+        </span>
+      `;
+    } else {
+      return `
+        <span class="status-badge status-badge-overdue">
+          <i class="fa-solid fa-circle-exclamation"></i> Overdue (${readableDate})
+        </span>
+      `;
+    }
+  };
+
+  const renderSubscriptionList = async () => {
+    if (!subscriptionListContainer) return;
+    
+    subscriptionListContainer.innerHTML = `
+      <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 12px; color: var(--primary);"></i>
+        <p>Syncing subscription registry...</p>
+      </div>
+    `;
+    
+    try {
+      const persons = await window.ApiService.getPersons();
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      
+      const searchQuery = subscriptionSearch.value.trim().toLowerCase();
+      
+      const filtered = persons.filter(p => {
+        if (searchQuery && !p.name.toLowerCase().includes(searchQuery)) return false;
+        
+        const isCleared = p.subscriptionClearedUpto && p.subscriptionClearedUpto >= currentMonth;
+        if (activeSubscriptionFilter === 'cleared' && !isCleared) return false;
+        if (activeSubscriptionFilter === 'overdue' && isCleared) return false;
+        
+        return true;
+      });
+      
+      subscriptionListContainer.innerHTML = '';
+      
+      if (filtered.length === 0) {
+        subscriptionListContainer.innerHTML = `
+          <div style="text-align: center; color: var(--text-muted); padding: 48px 20px; background: white; border-radius: var(--radius-lg); border: 1px dashed var(--border);">
+            <i class="fa-solid fa-circle-question" style="font-size: 2.5rem; margin-bottom: 16px; color: var(--text-muted);"></i>
+            <h3 style="font-family:'Outfit'; font-weight:700; margin-bottom:6px; color: var(--text-main);">No Matches</h3>
+            <p style="font-size:0.85rem;">Try adjusting your filters or search keywords.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      filtered.forEach(person => {
+        const card = document.createElement('div');
+        card.className = 'sub-card';
+        
+        card.innerHTML = `
+          <div class="sub-card-row">
+            <h3 class="sub-card-member">${person.name}</h3>
+            <span class="badge ${person.category === 'Student' ? 'badge-student' : person.category === 'Teacher' ? 'badge-teacher' : person.category === 'Well Wishers' ? 'badge-wellwishers' : 'badge-member'}">${person.category}</span>
+          </div>
+          <div class="sub-card-details">
+            <div class="detail-row">
+              <i class="fa-solid fa-phone"></i>
+              <span>${person.phone}</span>
+            </div>
+            <div style="margin-top: 6px;">
+              ${getSubscriptionBadgeHTML(person.subscriptionClearedUpto)}
+            </div>
+          </div>
+          <div class="sub-card-footer">
+            <button class="btn-record-payment" data-person-id="${person.id}" data-person-name="${person.name}" data-current-sub="${person.subscriptionClearedUpto || ''}">
+              <i class="fa-solid fa-credit-card"></i> Record Payment
+            </button>
+          </div>
+        `;
+        
+        card.querySelector('.btn-record-payment').addEventListener('click', (e) => {
+          e.stopPropagation();
+          openQuickPaymentModal(person.id, person.name, person.subscriptionClearedUpto);
+        });
+        
+        subscriptionListContainer.appendChild(card);
+      });
+      
+    } catch (err) {
+      subscriptionListContainer.innerHTML = `<p style="color:var(--error); text-align:center; padding: 20px;">Error loading subscriptions.</p>`;
+      console.error(err);
+    }
+  };
+
+  const openQuickPaymentModal = (personId, name, currentSubDate) => {
+    const defaultMonth = currentSubDate || new Date().toISOString().substring(0, 7);
+    
+    const contentHTML = `
+      <div class="form-view">
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 20px; text-align:left;">
+          Select the month up to which <strong>${name}</strong> has cleared their subscription fees.
+        </p>
+        
+        <form id="quick-payment-form">
+          <div class="form-group">
+            <label for="quick-sub-month">Cleared Upto Month</label>
+            <div class="input-container">
+              <i class="fa-solid fa-calendar-days"></i>
+              <input type="month" id="quick-sub-month" class="form-control" style="padding-left:44px;" required value="${defaultMonth}">
+            </div>
+          </div>
+          
+          <button type="submit" class="btn btn-primary" style="margin-top: 15px; padding: 14px; width: 100%;">
+            <i class="fa-solid fa-circle-check"></i> Record Payment
+          </button>
+        </form>
+      </div>
+    `;
+    
+    openModal('Record Subscription', contentHTML);
+    
+    document.getElementById('quick-payment-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const selectedMonth = document.getElementById('quick-sub-month').value;
+      
+      showLoader('Recording payment...');
+      try {
+        await window.ApiService.updateSubscription(personId, selectedMonth);
+        hideLoader();
+        closeModal();
+        showToast(`Subscription cleared month updated for ${name}!`, 'success');
+        
+        // Reload views
+        renderSubscriptionList();
+        loadDashboardStats();
+      } catch (err) {
+        hideLoader();
+        showToast(err.message, 'error');
+      }
+    });
+  };
+
+  // Search filter matching
+  if (subscriptionSearch) {
+    subscriptionSearch.addEventListener('input', () => {
+      renderSubscriptionList();
+    });
+  }
+
+  // Filter chips triggers
+  if (subscriptionFilterChips) {
+    subscriptionFilterChips.addEventListener('click', (e) => {
+      const clickedChip = e.target.closest('.chip');
+      if (!clickedChip) return;
+      
+      subscriptionFilterChips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      clickedChip.classList.add('active');
+      
+      activeSubscriptionFilter = clickedChip.getAttribute('data-filter');
+      renderSubscriptionList();
+    });
+  }
 
   // ==============================================
   // 12. RUN INITIALIZATIONS ON BOOTSTRAP

@@ -76,6 +76,65 @@ Because the project includes standard PWA components (`manifest.json` and `sw.js
 
 ---
 
+## ☁️ Cloud Database Setup & Sync
+
+You can easily synchronize your application's data across multiple devices (PCs, phones, tablets) by connecting a free cloud database (**Supabase** or **Firebase Firestore**). 
+
+### Option A: Supabase Setup (Recommended & Easiest) ⚡
+1. Create a free account at [supabase.com](https://supabase.com/) and create a new project.
+2. In your Supabase Dashboard, navigate to the **SQL Editor** in the left sidebar.
+3. Create a new query, paste the following SQL schema script, and click **Run**:
+
+   ```sql
+   -- 1. Create Persons table
+   CREATE TABLE persons (
+       id TEXT PRIMARY KEY,
+       name TEXT NOT NULL,
+       category TEXT NOT NULL,
+       phone TEXT NOT NULL,
+       email TEXT NOT NULL,
+       departments JSONB NOT NULL DEFAULT '[]'::jsonb,
+       "subscriptionClearedUpto" TEXT,
+       address TEXT,
+       "createdAt" TEXT NOT NULL
+   );
+
+   -- 2. Create Events table
+   CREATE TABLE events (
+       id TEXT PRIMARY KEY,
+       title TEXT NOT NULL,
+       date TEXT NOT NULL,
+       description TEXT,
+       participants JSONB NOT NULL DEFAULT '[]'::jsonb,
+       "createdAt" TEXT NOT NULL
+   );
+
+   -- 3. Enable Public Access Rules for anonymous read/write operations
+   ALTER TABLE persons ENABLE ROW LEVEL SECURITY;
+   ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+
+   CREATE POLICY "Allow anon select" ON persons FOR SELECT USING (true);
+   CREATE POLICY "Allow anon insert" ON persons FOR INSERT WITH CHECK (true);
+   CREATE POLICY "Allow anon update" ON persons FOR UPDATE USING (true) WITH CHECK (true);
+   CREATE POLICY "Allow anon delete" ON persons FOR DELETE USING (true);
+
+   CREATE POLICY "Allow anon select" ON events FOR SELECT USING (true);
+   CREATE POLICY "Allow anon insert" ON events FOR INSERT WITH CHECK (true);
+   CREATE POLICY "Allow anon update" ON events FOR UPDATE USING (true) WITH CHECK (true);
+   CREATE POLICY "Allow anon delete" ON events FOR DELETE USING (true);
+   ```
+
+4. Go to **Project Settings > API** in Supabase and copy your **Project URL** and **Anon Key**.
+5. Open the app, click the **Cloud Icon** next to Logout, select **Supabase**, paste your credentials, and click **Save & Connect**.
+
+### Option B: Firebase Firestore Setup 🔥
+1. Create a free project in the [Firebase Console](https://console.firebase.google.com/).
+2. In the sidebar, go to **Build > Firestore Database** and click **Create Database** (Start in **Test Mode** so read/write rules are open for public testing).
+3. Go to **Project Settings > General**, scroll down to your apps, click the **Web icon `</>`** to register a web app, and copy the **`firebaseConfig` JSON object** (looks like `{"apiKey": "...", "projectId": "...", ...}`).
+4. Open the app, click the **Cloud Icon**, select **Firebase**, paste the configuration JSON block, and click **Save & Connect**.
+
+---
+
 ## 📂 File Architecture
 
 The codebase is highly modular, commented in detail, and beginner-friendly:

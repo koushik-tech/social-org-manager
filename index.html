@@ -78,9 +78,14 @@
             <div class="welcome-note" id="user-greeting">Welcome, User</div>
             <h1>Dashboard</h1>
           </div>
-          <button class="btn-logout" id="btn-logout" title="Log Out">
-            <i class="fa-solid fa-power-off"></i>
-          </button>
+          <div class="header-action-group">
+            <button class="btn-cloud-sync" id="btn-cloud-sync" title="Cloud Sync Settings">
+              <i class="fa-solid fa-cloud"></i>
+            </button>
+            <button class="btn-logout" id="btn-logout" title="Log Out">
+              <i class="fa-solid fa-power-off"></i>
+            </button>
+          </div>
         </div>
 
         <!-- Quick Stats Grid -->
@@ -138,6 +143,17 @@
               <div class="action-btn-text">
                 <h3>Event Schedules</h3>
                 <p>Track activities and assign participants</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right chevron"></i>
+          </div>
+
+          <div class="action-btn-card btn-sub" id="action-subscription">
+            <div class="action-btn-left">
+              <div class="action-btn-icon"><i class="fa-solid fa-credit-card"></i></div>
+              <div class="action-btn-text">
+                <h3>Subscription Tracker</h3>
+                <p>Monitor clearing states & record payments</p>
               </div>
             </div>
             <i class="fa-solid fa-chevron-right chevron"></i>
@@ -205,6 +221,36 @@
       </div>
 
       <!-- ============================================== -->
+      <!-- 3B. SUBSCRIPTIONS SCREEN -->
+      <!-- ============================================== -->
+      <div id="screen-subscription" class="screen">
+        <div class="app-header">
+          <div>
+            <div class="welcome-note">TRACKER</div>
+            <h1>Subscriptions</h1>
+          </div>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="search-filter-section">
+          <div class="search-container">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="subscription-search" class="search-input" placeholder="Search members...">
+          </div>
+          <div class="chips-container" id="subscription-filter-chips">
+            <div class="chip active" data-filter="all">All</div>
+            <div class="chip" data-filter="cleared">🟢 Cleared</div>
+            <div class="chip" data-filter="overdue">🔴 Overdue</div>
+          </div>
+        </div>
+
+        <!-- Subscriptions List Container -->
+        <div class="cards-list" id="subscription-list-container">
+          <!-- Rendered dynamically in app.js -->
+        </div>
+      </div>
+
+      <!-- ============================================== -->
       <!-- BOTTOM TAB NAVIGATION -->
       <!-- ============================================== -->
       <nav class="bottom-nav" id="app-bottom-nav">
@@ -215,6 +261,10 @@
         <div class="nav-item" id="nav-persons" data-screen="screen-persons">
           <i class="fa-solid fa-users"></i>
           <span>Persons</span>
+        </div>
+        <div class="nav-item" id="nav-subscription" data-screen="screen-subscription">
+          <i class="fa-solid fa-credit-card"></i>
+          <span>Subscriptions</span>
         </div>
         <div class="nav-item" id="nav-events" data-screen="screen-events">
           <i class="fa-solid fa-calendar-days"></i>
@@ -244,6 +294,12 @@
   </div>
 
   <!-- Scripts: Loaded sequentially to construct database, auth, and routing -->
+  <!-- Supabase CDN Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Firebase Compat CDN Clients -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
   <script src="auth.js"></script>
   <script src="api.js"></script>
   <script src="app.js"></script>

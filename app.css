@@ -235,7 +235,7 @@ h1, h2, h3, h4, h5, h6 {
   transition: var(--transition-bounce);
   padding: 8px 12px;
   border-radius: var(--radius-md);
-  width: 28%;
+  flex: 1;
 }
 
 .nav-item i {
@@ -477,6 +477,7 @@ h1, h2, h3, h4, h5, h6 {
 .btn-persons .action-btn-icon { background: linear-gradient(135deg, var(--primary), hsl(250, 95%, 72%)); }
 .btn-depts .action-btn-icon { background: linear-gradient(135deg, var(--secondary), hsl(174, 90%, 55%)); }
 .btn-events .action-btn-icon { background: linear-gradient(135deg, var(--warning), hsl(38, 98%, 65%)); }
+.btn-sub .action-btn-icon { background: linear-gradient(135deg, hsl(142, 72%, 40%), hsl(142, 72%, 60%)); }
 
 .action-btn-text h3 {
   font-size: 1.05rem;
@@ -1309,3 +1310,254 @@ textarea.form-control {
     box-shadow: 0 8px 24px rgba(99, 102, 241, 0.6);
   }
 }
+
+/* --- Cloud Sync Styles --- */
+.header-action-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-cloud-sync {
+  background: var(--primary-light);
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--primary);
+  font-size: 1.2rem;
+  transition: var(--transition-bounce);
+}
+
+.btn-cloud-sync:hover {
+  transform: scale(1.08);
+  background-color: hsl(250, 100%, 93%);
+}
+
+.cloud-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 100px;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cloud-status-indicator.local {
+  background-color: var(--border);
+  color: var(--text-muted);
+}
+
+.cloud-status-indicator.supabase {
+  background-color: hsl(152, 70%, 95%);
+  color: hsl(152, 70%, 25%);
+  border: 1px solid hsl(152, 70%, 88%);
+}
+
+.cloud-status-indicator.firebase {
+  background-color: hsl(38, 92%, 95%);
+  color: hsl(38, 92%, 35%);
+  border: 1px solid hsl(38, 92%, 88%);
+}
+
+.cloud-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cloud-indicator-dot.active {
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: pulseActiveDot 1.2s infinite alternate;
+}
+
+.cloud-indicator-dot.inactive {
+  background-color: var(--text-muted);
+}
+
+.cloud-provider-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.provider-btn {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid var(--border);
+  background-color: var(--surface);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: var(--transition-smooth);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+}
+
+.provider-btn i {
+  font-size: 1.3rem;
+}
+
+.provider-btn.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background-color: var(--primary-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.cloud-config-section {
+  display: none;
+  animation: fadeInDown 0.3s ease;
+}
+
+.cloud-config-section.active {
+  display: block;
+}
+
+.cloud-info-box {
+  background-color: var(--primary-light);
+  border: 1px solid hsl(250, 100%, 90%);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 0.8rem;
+  color: hsl(250, 60%, 30%);
+  line-height: 1.5;
+  text-align: left;
+}
+
+.cloud-info-box i {
+  margin-right: 6px;
+}
+
+.sync-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+  border-top: 1px dashed var(--border);
+  padding-top: 16px;
+}
+
+.btn-sync-tool {
+  padding: 10px 12px;
+  font-size: 0.775rem;
+  height: auto;
+}
+
+@keyframes pulseActiveDot {
+  from {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* --- Subscription Module & Status Badges --- */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.725rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: fit-content;
+  border: 1px solid transparent;
+}
+
+.status-badge-cleared {
+  background-color: var(--success-bg);
+  color: var(--success);
+  border-color: hsl(142, 72%, 88%);
+}
+
+.status-badge-overdue {
+  background-color: var(--error-bg);
+  color: var(--error);
+  border-color: hsl(0, 84%, 88%);
+}
+
+.sub-card {
+  background-color: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  position: relative;
+  transition: var(--transition-bounce);
+  animation: slideCardIn 0.4s ease forwards;
+}
+
+.sub-card:hover {
+  border-color: hsl(var(--primary-hsl), 0.25);
+}
+
+.sub-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.sub-card-member {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.sub-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+  border-top: 1px dashed var(--border);
+  padding-top: 12px;
+}
+
+.btn-record-payment {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 0.775rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-record-payment:hover {
+  background-color: var(--primary-dark);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.25);
+}
+
