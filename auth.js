@@ -4,11 +4,11 @@
  */
 
 const AUTH_KEY = 'social_org_auth_session';
-const DEFAULT_USER = {
-  username: 'admin',
-  password: 'password123',
-  name: 'System Admin',
-  role: 'Administrator'
+const USERS_DB = {
+  admin: { username: 'admin', password: 'password123', name: 'System Admin', role: 'Admin' },
+  teacher: { username: 'teacher', password: 'teacher123', name: 'Teacher Rep', role: 'Teacher' },
+  student: { username: 'student', password: 'student123', name: 'Student Rep', role: 'Student' },
+  member: { username: 'member', password: 'member123', name: 'General Member', role: 'Member' }
 };
 
 const AuthService = {
@@ -24,12 +24,13 @@ const AuthService = {
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const normalizedUser = username.trim().toLowerCase();
+    const matchedUser = USERS_DB[normalizedUser];
     
-    if (normalizedUser === DEFAULT_USER.username && password === DEFAULT_USER.password) {
+    if (matchedUser && password === matchedUser.password) {
       const sessionData = {
-        username: DEFAULT_USER.username,
-        name: DEFAULT_USER.name,
-        role: DEFAULT_USER.role,
+        username: matchedUser.username,
+        name: matchedUser.name,
+        role: matchedUser.role,
         loggedInAt: new Date().toISOString()
       };
 
@@ -42,7 +43,7 @@ const AuthService = {
 
       return sessionData;
     } else {
-      throw new Error('Invalid username or password. Try admin / password123.');
+      throw new Error('Invalid username or password. Try: admin/password123, teacher/teacher123, student/student123, or member/member123.');
     }
   },
 

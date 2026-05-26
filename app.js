@@ -88,12 +88,59 @@ document.addEventListener('DOMContentLoaded', () => {
       const user = window.AuthService.getCurrentUser();
       document.getElementById('user-greeting').innerText = `Welcome, ${user.name}`;
       bottomNav.style.display = 'flex';
+      applyRolePermissions(user.role);
       switchScreen('screen-dashboard');
       loadDashboardStats();
       updateCloudStatusUI();
     } else {
       bottomNav.style.display = 'none';
       switchScreen('screen-login');
+    }
+  };
+
+  const applyRolePermissions = (role) => {
+    // 1. Reset all previously applied permissions classes
+    const elementsToReset = document.querySelectorAll('.role-hidden, .role-disabled');
+    elementsToReset.forEach(el => {
+      el.classList.remove('role-hidden', 'role-disabled');
+    });
+
+    const navPersons = document.getElementById('nav-persons');
+    const navSubscription = document.getElementById('nav-subscription');
+    const actionPersons = document.getElementById('action-persons');
+    const actionSubscription = document.getElementById('action-subscription');
+    const statPersonsCard = document.getElementById('stat-persons-trigger');
+    const fabPerson = document.getElementById('fab-add-person');
+    const fabEvent = document.getElementById('fab-add-event');
+
+    if (role === 'Student') {
+      // Students see only Events and Departments
+      if (navPersons) navPersons.classList.add('role-hidden');
+      if (navSubscription) navSubscription.classList.add('role-hidden');
+      if (actionPersons) actionPersons.classList.add('role-hidden');
+      if (actionSubscription) actionSubscription.classList.add('role-hidden');
+      if (statPersonsCard) statPersonsCard.classList.add('role-hidden');
+      if (fabPerson) fabPerson.classList.add('role-hidden');
+      if (fabEvent) fabEvent.classList.add('role-hidden');
+    } 
+    
+    else if (role === 'Teacher') {
+      // Teachers cannot access Subscription tracker, and have Read-Only on Events
+      if (navSubscription) navSubscription.classList.add('role-hidden');
+      if (actionSubscription) actionSubscription.classList.add('role-hidden');
+      if (fabEvent) fabEvent.classList.add('role-hidden');
+      
+      // Teachers can only view/manage Students: hide other category filter chips
+      if (filterChipsContainer) {
+        const chipsToHide = filterChipsContainer.querySelectorAll('.chip[data-category="Member"], .chip[data-category="Teacher"], .chip[data-category="Well Wishers"]');
+        chipsToHide.forEach(chip => chip.classList.add('role-hidden'));
+      }
+    } 
+    
+    else if (role === 'Member') {
+      // Members have Read-Only access: Hide all add buttons (FABs)
+      if (fabPerson) fabPerson.classList.add('role-hidden');
+      if (fabEvent) fabEvent.classList.add('role-hidden');
     }
   };
 
@@ -240,9 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
       hideLoader();
       showToast(`Welcome back, ${user.name}!`, 'success');
       
-      document.getElementById('user-greeting').innerText = `Welcome, ${user.name}`;
-      bottomNav.style.display = 'flex';
-      switchScreen('screen-dashboard');
+      checkSession();
     } catch (error) {
       hideLoader();
       showToast(error.message, 'error');
@@ -278,15 +323,15 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="form-group">
           <label>Select Cloud Provider</label>
           <div class="cloud-provider-toggle" id="cloud-provider-toggle">
-            <button type="button" class="provider-btn \${selectedProvider === 'none' ? 'active' : ''}" data-provider="none">
+            <button type="button" class="provider-btn" data-provider="none">
               <i class="fa-solid fa-hard-drive"></i>
               <span>Local Only</span>
             </button>
-            <button type="button" class="provider-btn \${selectedProvider === 'supabase' ? 'active' : ''}" data-provider="supabase">
+            <button type="button" class="provider-btn" data-provider="supabase">
               <i class="fa-solid fa-bolt"></i>
               <span>Supabase</span>
             </button>
-            <button type="button" class="provider-btn \${selectedProvider === 'firebase' ? 'active' : ''}" data-provider="firebase">
+            <button type="button" class="provider-btn" data-provider="firebase">
               <i class="fa-solid fa-fire"></i>
               <span>Firebase</span>
             </button>
@@ -708,8 +753,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const deptMap = {};
       depts.forEach(d => { deptMap[d.id] = d; });
 
+      const user = window.AuthService.getCurrentUser();
+      const userRole = user ? user.role : '';
+
+      // If user is Teacher, filter to show only category 'Student'
+      let visiblePersons = persons;
+      if (userRole === 'Teacher') {
+        visiblePersons = persons.filter(p => p.category === 'Student');
+      } else if (userRole === 'Student') {
+        visiblePersons = [];
+      }
+
       // Apply Search and Category chip filtering in memory
-      const filteredPersons = persons.filter(person => {
+      const filteredPersons = visiblePersons.filter(person => {
         // 1. Category chip filter
         if (activePersonFilter !== 'all' && person.category !== activePersonFilter) {
           return false;
@@ -849,6 +905,24 @@ document.addEventListener('DOMContentLoaded', () => {
       if (person.category === 'Teacher') badgeClass = 'badge-teacher';
       if (person.category === 'Well Wishers') badgeClass = 'badge-wellwishers';
 
+      // Check role based permissions for Edit/Delete actions
+      const user = window.AuthService.getCurrentUser();
+      const userRole = user ? user.role : '';
+      
+      let showEditDelete = false;
+      if (userRole === 'Admin') {
+        showEditDelete = true;
+      } else if (userRole === 'Teacher' && person.category === 'Student') {
+        showEditDelete = true;
+      }
+
+      const footerBtnsHTML = showEditDelete ? `
+        <div class="modal-footer-btns">
+          <button class="btn btn-secondary" id="btn-edit-person" style="width: 48%;"><i class="fa-solid fa-user-pen"></i> Edit</button>
+          <button class="btn btn-danger" id="btn-delete-person" style="width: 48%;"><i class="fa-solid fa-trash-can"></i> Delete</button>
+        </div>
+      ` : '';
+
       const detailsHTML = `
         <div class="person-details-view">
           <div class="person-detail-header">
@@ -897,30 +971,29 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
 
-          <div class="modal-footer-btns">
-            <button class="btn btn-secondary" id="btn-edit-person" style="width: 48%;"><i class="fa-solid fa-user-pen"></i> Edit</button>
-            <button class="btn btn-danger" id="btn-delete-person" style="width: 48%;"><i class="fa-solid fa-trash-can"></i> Delete</button>
-          </div>
+          ${footerBtnsHTML}
         </div>
       `;
 
       openModal('Person Details', detailsHTML);
 
-      // Bind Edit triggers
-      document.getElementById('btn-edit-person').addEventListener('click', () => {
-        closeModal();
-        setTimeout(() => {
-          openPersonFormModal(person);
-        }, 320);
-      });
+      if (showEditDelete) {
+        // Bind Edit triggers
+        document.getElementById('btn-edit-person').addEventListener('click', () => {
+          closeModal();
+          setTimeout(() => {
+            openPersonFormModal(person);
+          }, 320);
+        });
 
-      // Bind Delete triggers
-      document.getElementById('btn-delete-person').addEventListener('click', () => {
-        closeModal();
-        setTimeout(() => {
-          confirmDeletePerson(person);
-        }, 320);
-      });
+        // Bind Delete triggers
+        document.getElementById('btn-delete-person').addEventListener('click', () => {
+          closeModal();
+          setTimeout(() => {
+            confirmDeletePerson(person);
+          }, 320);
+        });
+      }
 
     } catch (e) {
       hideLoader();
@@ -978,6 +1051,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const isEditMode = personToEdit !== null;
       
+      const user = window.AuthService.getCurrentUser();
+      const userRole = user ? user.role : '';
+      const isMember = userRole === 'Member';
+      const isTeacher = userRole === 'Teacher';
+      const disabledAttr = isMember ? 'disabled' : '';
+
       // Render departments multi-select grid items
       let deptsCheckboxesHTML = '';
       depts.forEach(dept => {
@@ -992,6 +1071,32 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       });
 
+      let categorySelectHTML = '';
+      if (isTeacher) {
+        // Teachers can only register or edit Student
+        categorySelectHTML = `
+          <select id="form-person-category" class="form-control" style="padding-left:44px;" required disabled>
+            <option value="Student" selected>Student</option>
+          </select>
+        `;
+      } else {
+        categorySelectHTML = `
+          <select id="form-person-category" class="form-control" style="padding-left:44px;" required ${disabledAttr}>
+            <option value="" disabled ${!isEditMode ? 'selected' : ''}>Select Category</option>
+            <option value="Member" ${isEditMode && personToEdit.category === 'Member' ? 'selected' : ''}>Member</option>
+            <option value="Student" ${isEditMode && personToEdit.category === 'Student' ? 'selected' : ''}>Student</option>
+            <option value="Teacher" ${isEditMode && personToEdit.category === 'Teacher' ? 'selected' : ''}>Teacher</option>
+            <option value="Well Wishers" ${isEditMode && personToEdit.category === 'Well Wishers' ? 'selected' : ''}>Well Wishers</option>
+          </select>
+        `;
+      }
+
+      const submitBtnHTML = isMember ? '' : `
+        <button type="submit" class="btn btn-primary" style="margin-top: 10px; padding:16px;">
+          <i class="fa-solid fa-cloud-arrow-up"></i> ${isEditMode ? 'Save Changes' : 'Register Member'}
+        </button>
+      `;
+
       const formHTML = `
         <div class="form-view">
           <form id="person-upsert-form">
@@ -999,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <label for="form-person-name">Full Name</label>
               <div class="input-container">
                 <i class="fa-solid fa-user-tag"></i>
-                <input type="text" id="form-person-name" class="form-control" placeholder="Enter full name" required value="${isEditMode ? personToEdit.name : ''}">
+                <input type="text" id="form-person-name" class="form-control" placeholder="Enter full name" required value="${isEditMode ? personToEdit.name : ''}" ${disabledAttr}>
               </div>
             </div>
 
@@ -1007,13 +1112,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <label for="form-person-category">Category</label>
               <div class="input-container">
                 <i class="fa-solid fa-graduation-cap"></i>
-                <select id="form-person-category" class="form-control" style="padding-left:44px;" required>
-                  <option value="" disabled ${!isEditMode ? 'selected' : ''}>Select Category</option>
-                  <option value="Member" ${isEditMode && personToEdit.category === 'Member' ? 'selected' : ''}>Member</option>
-                  <option value="Student" ${isEditMode && personToEdit.category === 'Student' ? 'selected' : ''}>Student</option>
-                  <option value="Teacher" ${isEditMode && personToEdit.category === 'Teacher' ? 'selected' : ''}>Teacher</option>
-                  <option value="Well Wishers" ${isEditMode && personToEdit.category === 'Well Wishers' ? 'selected' : ''}>Well Wishers</option>
-                </select>
+                ${categorySelectHTML}
               </div>
             </div>
 
@@ -1021,7 +1120,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <label for="form-person-phone">Phone Number</label>
               <div class="input-container">
                 <i class="fa-solid fa-phone"></i>
-                <input type="tel" id="form-person-phone" class="form-control" placeholder="Enter 10-digit number" required pattern="[0-9]{10}" title="Please enter a valid 10-digit mobile number" value="${isEditMode ? personToEdit.phone : ''}">
+                <input type="tel" id="form-person-phone" class="form-control" placeholder="Enter 10-digit number" required pattern="[0-9]{10}" title="Please enter a valid 10-digit mobile number" value="${isEditMode ? personToEdit.phone : ''}" ${disabledAttr}>
               </div>
             </div>
 
@@ -1029,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <label for="form-person-email">Email Address</label>
               <div class="input-container">
                 <i class="fa-solid fa-envelope"></i>
-                <input type="email" id="form-person-email" class="form-control" placeholder="Enter email address" required value="${isEditMode ? personToEdit.email : ''}">
+                <input type="email" id="form-person-email" class="form-control" placeholder="Enter email address" required value="${isEditMode ? personToEdit.email : ''}" ${disabledAttr}>
               </div>
             </div>
 
@@ -1044,18 +1143,16 @@ document.addEventListener('DOMContentLoaded', () => {
               <label for="form-person-sub">Subscription Cleared Upto</label>
               <div class="input-container">
                 <i class="fa-solid fa-calendar-check"></i>
-                <input type="month" id="form-person-sub" class="form-control" style="padding-left:44px;" required value="${isEditMode ? (personToEdit.subscriptionClearedUpto || new Date().toISOString().substring(0, 7)) : new Date().toISOString().substring(0, 7)}">
+                <input type="month" id="form-person-sub" class="form-control" style="padding-left:44px;" required value="${isEditMode ? (personToEdit.subscriptionClearedUpto || new Date().toISOString().substring(0, 7)) : new Date().toISOString().substring(0, 7)}" ${disabledAttr}>
               </div>
             </div>
 
             <div class="form-group">
               <label for="form-person-address">Home Address</label>
-              <textarea id="form-person-address" class="form-control" placeholder="Enter complete address">${isEditMode ? personToEdit.address : ''}</textarea>
+              <textarea id="form-person-address" class="form-control" placeholder="Enter complete address" ${disabledAttr}>${isEditMode ? personToEdit.address : ''}</textarea>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="margin-top: 10px; padding:16px;">
-              <i class="fa-solid fa-cloud-arrow-up"></i> ${isEditMode ? 'Save Changes' : 'Register Member'}
-            </button>
+            ${submitBtnHTML}
           </form>
         </div>
       `;
@@ -1066,6 +1163,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const checkboxes = document.querySelectorAll('.multi-select-item');
       checkboxes.forEach(item => {
         item.addEventListener('click', (e) => {
+          if (isMember) return; // Prevent toggling for Members
           // Prevent default checkbox clicks and manage toggling manually for tactile feel
           e.preventDefault();
           const checkbox = item.querySelector('input[type="checkbox"]');
@@ -1083,10 +1181,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const formElement = document.getElementById('person-upsert-form');
       formElement.addEventListener('submit', async (submitEvent) => {
         submitEvent.preventDefault();
+        if (isMember) return; // Guard for Members
 
         // 1. Fetch form input values
         const nameVal = document.getElementById('form-person-name').value.trim();
-        const categoryVal = document.getElementById('form-person-category').value;
+        const categoryVal = isTeacher ? 'Student' : document.getElementById('form-person-category').value;
         const phoneVal = document.getElementById('form-person-phone').value.trim();
         const emailVal = document.getElementById('form-person-email').value.trim();
         const subVal = document.getElementById('form-person-sub').value || new Date().toISOString().substring(0, 7);
@@ -1242,6 +1341,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Create Event Form
   const openEventFormModal = async () => {
+    const user = window.AuthService.getCurrentUser();
+    const userRole = user ? user.role : '';
+    if (userRole !== 'Admin') {
+      showToast('Permission denied. Only Admins can schedule events.', 'error');
+      return;
+    }
+
     showLoader('Fetching participants data...');
     try {
       const persons = await window.ApiService.getPersons();
@@ -1443,10 +1549,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
+      const user = window.AuthService.getCurrentUser();
+      const userRole = user ? user.role : '';
+      const isMember = userRole === 'Member';
+
       filtered.forEach(person => {
         const card = document.createElement('div');
         card.className = 'sub-card';
         
+        const footerHTML = isMember ? '' : `
+          <div class="sub-card-footer">
+            <button class="btn-record-payment" data-person-id="${person.id}" data-person-name="${person.name}" data-current-sub="${person.subscriptionClearedUpto || ''}">
+              <i class="fa-solid fa-credit-card"></i> Record Payment
+            </button>
+          </div>
+        `;
+
         card.innerHTML = `
           <div class="sub-card-row">
             <h3 class="sub-card-member">${person.name}</h3>
@@ -1461,17 +1579,16 @@ document.addEventListener('DOMContentLoaded', () => {
               ${getSubscriptionBadgeHTML(person.subscriptionClearedUpto)}
             </div>
           </div>
-          <div class="sub-card-footer">
-            <button class="btn-record-payment" data-person-id="${person.id}" data-person-name="${person.name}" data-current-sub="${person.subscriptionClearedUpto || ''}">
-              <i class="fa-solid fa-credit-card"></i> Record Payment
-            </button>
-          </div>
+          ${footerHTML}
         `;
         
-        card.querySelector('.btn-record-payment').addEventListener('click', (e) => {
-          e.stopPropagation();
-          openQuickPaymentModal(person.id, person.name, person.subscriptionClearedUpto);
-        });
+        const recordBtn = card.querySelector('.btn-record-payment');
+        if (recordBtn) {
+          recordBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openQuickPaymentModal(person.id, person.name, person.subscriptionClearedUpto);
+          });
+        }
         
         subscriptionListContainer.appendChild(card);
       });
@@ -1483,6 +1600,12 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const openQuickPaymentModal = (personId, name, currentSubDate) => {
+    const user = window.AuthService.getCurrentUser();
+    if (user && user.role === 'Member') {
+      showToast('Permission denied. Members cannot record payments.', 'error');
+      return;
+    }
+
     const defaultMonth = currentSubDate || new Date().toISOString().substring(0, 7);
     
     const contentHTML = `

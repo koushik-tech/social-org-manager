@@ -1561,3 +1561,14 @@ textarea.form-control {
   box-shadow: 0 4px 8px rgba(99, 102, 241, 0.25);
 }
 
+/* --- Role-Based Access Control Utility Classes --- */
+.role-hidden {
+  display: none !important;
+}
+
+.role-disabled {
+  opacity: 0.55 !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}
+
