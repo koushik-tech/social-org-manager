@@ -593,6 +593,18 @@ const ApiService = {
             executiveCommittee: typeof d.executiveCommittee === 'string' ? JSON.parse(d.executiveCommittee) : d.executiveCommittee,
             subCommittee: typeof d.subCommittee === 'string' ? JSON.parse(d.subCommittee) : d.subCommittee
           }));
+
+          // Self-healing: Check if 'general' department is missing from Supabase
+          const hasGeneral = parsedData.some(d => d.id === 'general');
+          if (!hasGeneral) {
+            console.log('[Api Service] "general" department missing from Supabase. Auto-seeding it...');
+            const generalSeed = DEPARTMENTS_DB.find(d => d.id === 'general');
+            if (generalSeed) {
+              parsedData.push(generalSeed);
+              supabaseClientInstance.from('departments').insert([generalSeed]).catch(e => console.error('Failed to auto-seed general to Supabase:', e));
+            }
+          }
+
           setStorageData(STORAGE_KEYS.DEPARTMENTS, parsedData);
           return parsedData;
         } else if (data && data.length === 0) {
@@ -614,6 +626,18 @@ const ApiService = {
         if (data.length > 0) {
           // Sort to match seed order roughly
           data.sort((a, b) => a.id.localeCompare(b.id));
+
+          // Self-healing: Check if 'general' department is missing from Firebase
+          const hasGeneral = data.some(d => d.id === 'general');
+          if (!hasGeneral) {
+            console.log('[Api Service] "general" department missing from Firebase. Auto-seeding it...');
+            const generalSeed = DEPARTMENTS_DB.find(d => d.id === 'general');
+            if (generalSeed) {
+              data.push(generalSeed);
+              firebaseDbInstance.collection('departments').doc(generalSeed.id).set(generalSeed).catch(e => console.error('Failed to auto-seed general to Firebase:', e));
+            }
+          }
+
           setStorageData(STORAGE_KEYS.DEPARTMENTS, data);
           return data;
         } else {
