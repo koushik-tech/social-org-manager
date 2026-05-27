@@ -1223,8 +1223,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Maintain dynamic local array copy of the gallery photos
+      // Maintain dynamic local array copy of the gallery photos and committees
       let currentGallery = [...dept.gallery];
+      let currentExec = Array.isArray(dept.executiveCommittee) ? JSON.parse(JSON.stringify(dept.executiveCommittee)) : [];
+      let currentSub = Array.isArray(dept.subCommittee) ? JSON.parse(JSON.stringify(dept.subCommittee)) : [];
 
       // Reusable HTML compiler for dynamic gallery editing
       const renderGalleryEditorHTML = () => {
@@ -1265,6 +1267,74 @@ document.addEventListener('DOMContentLoaded', () => {
               </button>
             </div>
           </div>
+        `;
+      };
+
+      // Reusable HTML compiler for dynamic Executive Committee members editing
+      const renderExecEditorHTML = () => {
+        let itemsHTML = '';
+        currentExec.forEach((m, idx) => {
+          itemsHTML += `
+            <div class="committee-member-form-card" data-idx="${idx}" style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px; background: white; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 2px;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Executive #${idx + 1}</span>
+                <button type="button" class="btn-remove-committee-member" data-list="exec" data-idx="${idx}" title="Remove member" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 2px 6px; font-size: 0.75rem; font-weight: 600;">
+                  <i class="fa-solid fa-trash-can"></i> Remove
+                </button>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                  <input type="text" class="form-control exec-role-input" data-idx="${idx}" placeholder="Role (e.g. President)" value="${m.role || ''}" required style="padding: 6px 10px; font-size: 0.8rem; border-color: var(--border);">
+                </div>
+                <div style="flex: 1.5;">
+                  <input type="text" class="form-control exec-name-input" data-idx="${idx}" placeholder="Full Name" value="${m.name || ''}" required style="padding: 6px 10px; font-size: 0.8rem; border-color: var(--border);">
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        return `
+          <div id="form-exec-members-list">
+            ${itemsHTML || '<div style="text-align: center; color: var(--text-muted); padding: 16px 10px; border: 1px dashed var(--border); border-radius: var(--radius-sm); font-size: 0.8rem; background-color: var(--background); margin-bottom: 10px;">No executive committee members added yet.</div>'}
+          </div>
+          <button type="button" class="btn btn-secondary" id="btn-add-exec-member" style="padding: 8px 12px; font-size:0.8rem; width:100%; background: var(--primary-light); color: var(--primary); border: 1px dashed hsl(var(--primary-hsl), 0.4); border-radius: var(--radius-sm); margin-bottom: 12px;">
+            <i class="fa-solid fa-user-plus"></i> Add Executive Member
+          </button>
+        `;
+      };
+
+      // Reusable HTML compiler for dynamic Sub-Committee members editing
+      const renderSubEditorHTML = () => {
+        let itemsHTML = '';
+        currentSub.forEach((m, idx) => {
+          itemsHTML += `
+            <div class="committee-member-form-card" data-idx="${idx}" style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px; background: white; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 2px;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Sub-Committee #${idx + 1}</span>
+                <button type="button" class="btn-remove-committee-member" data-list="sub" data-idx="${idx}" title="Remove member" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 2px 6px; font-size: 0.75rem; font-weight: 600;">
+                  <i class="fa-solid fa-trash-can"></i> Remove
+                </button>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <div style="flex: 1;">
+                  <input type="text" class="form-control sub-role-input" data-idx="${idx}" placeholder="Role (e.g. Sports Coord)" value="${m.role || ''}" required style="padding: 6px 10px; font-size: 0.8rem; border-color: var(--border);">
+                </div>
+                <div style="flex: 1.5;">
+                  <input type="text" class="form-control sub-name-input" data-idx="${idx}" placeholder="Full Name" value="${m.name || ''}" required style="padding: 6px 10px; font-size: 0.8rem; border-color: var(--border);">
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        return `
+          <div id="form-sub-members-list">
+            ${itemsHTML || '<div style="text-align: center; color: var(--text-muted); padding: 16px 10px; border: 1px dashed var(--border); border-radius: var(--radius-sm); font-size: 0.8rem; background-color: var(--background); margin-bottom: 10px;">No sub-committee members added yet.</div>'}
+          </div>
+          <button type="button" class="btn btn-secondary" id="btn-add-sub-member" style="padding: 8px 12px; font-size:0.8rem; width:100%; background: var(--primary-light); color: var(--primary); border: 1px dashed hsl(var(--primary-hsl), 0.4); border-radius: var(--radius-sm); margin-bottom: 12px;">
+            <i class="fa-solid fa-user-plus"></i> Add Sub-Committee Member
+          </button>
         `;
       };
 
@@ -1349,6 +1419,90 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       };
 
+      // Handler to bind dynamic committee editor listeners
+      const bindCommitteeEvents = () => {
+        const execContainer = document.getElementById('exec-editor-container');
+        const subContainer = document.getElementById('sub-editor-container');
+        if (!execContainer || !subContainer) return;
+
+        const refreshExecUI = () => {
+          execContainer.innerHTML = renderExecEditorHTML();
+          bindCommitteeEvents();
+        };
+
+        const refreshSubUI = () => {
+          subContainer.innerHTML = renderSubEditorHTML();
+          bindCommitteeEvents();
+        };
+
+        // Sync inputs back to memory arrays immediately on change (preserves edits during add/removes)
+        execContainer.querySelectorAll('.committee-member-form-card').forEach(card => {
+          const idx = parseInt(card.getAttribute('data-idx'));
+          const rInput = card.querySelector('.exec-role-input');
+          const nInput = card.querySelector('.exec-name-input');
+          if (rInput) {
+            rInput.addEventListener('input', (e) => {
+              if (currentExec[idx]) currentExec[idx].role = e.target.value;
+            });
+          }
+          if (nInput) {
+            nInput.addEventListener('input', (e) => {
+              if (currentExec[idx]) currentExec[idx].name = e.target.value;
+            });
+          }
+        });
+
+        subContainer.querySelectorAll('.committee-member-form-card').forEach(card => {
+          const idx = parseInt(card.getAttribute('data-idx'));
+          const rInput = card.querySelector('.sub-role-input');
+          const nInput = card.querySelector('.sub-name-input');
+          if (rInput) {
+            rInput.addEventListener('input', (e) => {
+              if (currentSub[idx]) currentSub[idx].role = e.target.value;
+            });
+          }
+          if (nInput) {
+            nInput.addEventListener('input', (e) => {
+              if (currentSub[idx]) currentSub[idx].name = e.target.value;
+            });
+          }
+        });
+
+        // Add action bindings
+        const addExecBtn = document.getElementById('btn-add-exec-member');
+        if (addExecBtn) {
+          addExecBtn.addEventListener('click', () => {
+            currentExec.push({ name: '', role: '' });
+            refreshExecUI();
+          });
+        }
+
+        const addSubBtn = document.getElementById('btn-add-sub-member');
+        if (addSubBtn) {
+          addSubBtn.addEventListener('click', () => {
+            currentSub.push({ name: '', role: '' });
+            refreshSubUI();
+          });
+        }
+
+        // Remove buttons
+        const removeBtns = modalOverlay.querySelectorAll('.btn-remove-committee-member');
+        removeBtns.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const listType = btn.getAttribute('data-list');
+            const idx = parseInt(btn.getAttribute('data-idx'));
+            if (listType === 'exec') {
+              currentExec.splice(idx, 1);
+              refreshExecUI();
+            } else {
+              currentSub.splice(idx, 1);
+              refreshSubUI();
+            }
+          });
+        });
+      };
+
       const refreshGalleryUI = () => {
         const gridItems = document.getElementById('form-gallery-grid-items');
         if (!gridItems) return;
@@ -1383,32 +1537,6 @@ document.addEventListener('DOMContentLoaded', () => {
       let formHTML = '';
 
       if (deptId === 'general') {
-        let execInputs = '';
-        dept.executiveCommittee.forEach((m, idx) => {
-          execInputs += `
-            <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px; background: white;">
-              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Executive #${idx + 1} (${m.role})</div>
-              <input type="hidden" id="edit-exec-role-${idx}" value="${m.role}">
-              <div class="form-group" style="margin-bottom: 6px;">
-                <input type="text" id="edit-exec-name-${idx}" class="form-control" placeholder="Name" required value="${m.name}" style="padding: 8px 12px; font-size: 0.85rem;">
-              </div>
-            </div>
-          `;
-        });
-
-        let subInputs = '';
-        dept.subCommittee.forEach((m, idx) => {
-          subInputs += `
-            <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px; background: white;">
-              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Sub-Committee #${idx + 1} (${m.role})</div>
-              <input type="hidden" id="edit-sub-role-${idx}" value="${m.role}">
-              <div class="form-group" style="margin-bottom: 6px;">
-                <input type="text" id="edit-sub-name-${idx}" class="form-control" placeholder="Name" required value="${m.name}" style="padding: 8px 12px; font-size: 0.85rem;">
-              </div>
-            </div>
-          `;
-        });
-
         formHTML = `
           <div class="form-view" style="padding-bottom: 20px;">
             <form id="dept-edit-form-general">
@@ -1421,10 +1549,14 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
 
               <div class="dept-section-title" style="margin-bottom: 10px;"><i class="fa-solid fa-users-gear"></i> Executive Committee</div>
-              ${execInputs}
+              <div id="exec-editor-container">
+                ${renderExecEditorHTML()}
+              </div>
 
               <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-people-group"></i> Sub-Committee</div>
-              ${subInputs}
+              <div id="sub-editor-container">
+                ${renderSubEditorHTML()}
+              </div>
 
               <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-images"></i> Dynamic Photo Gallery</div>
               ${renderGalleryEditorHTML()}
@@ -1510,6 +1642,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Bind gallery drag/drop and delete handles
       bindGalleryEvents();
 
+      // Bind dynamic committee events for the General wing
+      if (deptId === 'general') {
+        bindCommitteeEvents();
+      }
+
       document.getElementById('btn-cancel-edit-dept').addEventListener('click', () => {
         closeModal();
         setTimeout(() => {
@@ -1522,28 +1659,21 @@ document.addEventListener('DOMContentLoaded', () => {
         editFormGeneral.addEventListener('submit', async (e) => {
           e.preventDefault();
           
-          const newExec = [];
-          for (let i = 0; i < dept.executiveCommittee.length; i++) {
-            newExec.push({
-              name: document.getElementById(`edit-exec-name-${i}`).value.trim(),
-              role: document.getElementById(`edit-exec-role-${i}`).value
-            });
-          }
+          // Map and clean up committee arrays, filtering out items that are completely blank
+          const finalExec = currentExec
+            .map(m => ({ name: (m.name || '').trim(), role: (m.role || '').trim() }))
+            .filter(m => m.name || m.role);
 
-          const newSub = [];
-          for (let i = 0; i < dept.subCommittee.length; i++) {
-            newSub.push({
-              name: document.getElementById(`edit-sub-name-${i}`).value.trim(),
-              role: document.getElementById(`edit-sub-role-${i}`).value
-            });
-          }
+          const finalSub = currentSub
+            .map(m => ({ name: (m.name || '').trim(), role: (m.role || '').trim() }))
+            .filter(m => m.name || m.role);
 
           showLoader('Updating wing details...');
           try {
             await window.ApiService.updateDepartment(deptId, {
               operationalYear: document.getElementById('edit-dept-op-year').value.trim(),
-              executiveCommittee: newExec,
-              subCommittee: newSub,
+              executiveCommittee: finalExec,
+              subCommittee: finalSub,
               gallery: currentGallery
             });
 
