@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     persons: document.getElementById('action-persons'),
     depts: document.getElementById('action-depts'),
     subscription: document.getElementById('action-subscription'),
+    committee: document.getElementById('action-committee'),
     events: document.getElementById('action-events'),
     users: document.getElementById('action-users')
   };
@@ -810,6 +811,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (quickLinks.subscription) {
     quickLinks.subscription.addEventListener('click', () => switchScreen('screen-subscription'));
   }
+  if (quickLinks.committee) {
+    quickLinks.committee.addEventListener('click', () => openDepartmentDetailsModal('general'));
+  }
   if (quickLinks.users) {
     quickLinks.users.addEventListener('click', () => openUserManagementModal());
   }
@@ -1035,7 +1039,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="dept-details-header">
               <div class="dept-details-avatar">${dept.icon}</div>
               <h2 class="dept-details-name">${dept.name} Department</h2>
-              <span class="badge badge-member" style="margin-bottom: 8px;">General Wing</span>
+              <span class="badge badge-member" style="margin-bottom: 4px;">General Wing</span>
+              <div style="font-size: 0.825rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; margin-bottom: 8px;">
+                <i class="fa-regular fa-calendar-days" style="color:var(--primary); margin-right: 4px;"></i> Operational Year: ${dept.operationalYear || '2025 - 2026'}
+              </div>
             </div>
 
             <div class="dept-details-body">
@@ -1405,6 +1412,14 @@ document.addEventListener('DOMContentLoaded', () => {
         formHTML = `
           <div class="form-view" style="padding-bottom: 20px;">
             <form id="dept-edit-form-general">
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="edit-dept-op-year">Operational Year</label>
+                <div class="input-container">
+                  <i class="fa-regular fa-calendar-days"></i>
+                  <input type="text" id="edit-dept-op-year" class="form-control" placeholder="E.g. 2025 - 2026" required value="${dept.operationalYear || '2025 - 2026'}" style="padding-left: 40px; font-size: 0.875rem;">
+                </div>
+              </div>
+
               <div class="dept-section-title" style="margin-bottom: 10px;"><i class="fa-solid fa-users-gear"></i> Executive Committee</div>
               ${execInputs}
 
@@ -1526,6 +1541,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showLoader('Updating wing details...');
           try {
             await window.ApiService.updateDepartment(deptId, {
+              operationalYear: document.getElementById('edit-dept-op-year').value.trim(),
               executiveCommittee: newExec,
               subCommittee: newSub,
               gallery: currentGallery

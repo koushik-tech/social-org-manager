@@ -122,6 +122,7 @@ You can easily synchronize your application's data across multiple devices (PCs,
        "admissionFees" TEXT,
        "monthlyFees" TEXT,
        poc JSONB,
+       "operationalYear" TEXT,
        gallery JSONB NOT NULL DEFAULT '[]'::jsonb,
        "executiveCommittee" JSONB NOT NULL DEFAULT '[]'::jsonb,
        "subCommittee" JSONB NOT NULL DEFAULT '[]'::jsonb

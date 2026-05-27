@@ -161,6 +161,7 @@ const DEPARTMENTS_DB = [
     name: 'General',
     category: 'General',
     icon: '📋',
+    operationalYear: '2025 - 2026',
     executiveCommittee: [
       { name: 'Subrata Dey', role: 'President' },
       { name: 'Bimal Krishna Roy', role: 'General Secretary' },

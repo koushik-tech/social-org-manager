@@ -479,6 +479,7 @@ h1, h2, h3, h4, h5, h6 {
 .btn-depts .action-btn-icon { background: linear-gradient(135deg, var(--secondary), hsl(174, 90%, 55%)); }
 .btn-events .action-btn-icon { background: linear-gradient(135deg, var(--warning), hsl(38, 98%, 65%)); }
 .btn-sub .action-btn-icon { background: linear-gradient(135deg, hsl(142, 72%, 40%), hsl(142, 72%, 60%)); }
+.btn-committee .action-btn-icon { background: linear-gradient(135deg, #eab308, #ca8a04); }
 
 .action-btn-text h3 {
   font-size: 1.05rem;
