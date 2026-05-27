@@ -11,16 +11,171 @@ const STORAGE_KEYS = {
 
 // Fixed Department Hierarchical Structure
 const DEPARTMENTS_DB = [
-  { id: 'cultural-art-school', name: 'Art School', category: 'Cultural', icon: '🎨' },
-  { id: 'cultural-recitation', name: 'Recitation', category: 'Cultural', icon: '🗣️' },
-  { id: 'cultural-ghungur', name: 'Ghungur', category: 'Cultural', icon: '💃' },
-  { id: 'library', name: 'Library', category: 'Library', icon: '📚' },
-  { id: 'sports-mohila-yogasana', name: 'Mohila Yogasana', category: 'Sports', icon: '🧘‍♀️' },
-  { id: 'sports-pranayam', name: 'Pranayam', category: 'Sports', icon: '💨' },
-  { id: 'sports-park', name: 'Park', category: 'Sports', icon: '🌳' },
-  { id: 'social-service-dispensary', name: 'Dispensary', category: 'Social Service', icon: '🏥' },
-  { id: 'social-service-others', name: 'Others', category: 'Social Service', icon: '🤝' },
-  { id: 'general', name: 'General', category: 'General', icon: '📋' }
+  {
+    id: 'cultural-art-school',
+    name: 'Art School',
+    category: 'Cultural',
+    icon: '🎨',
+    about: 'Nurturing creative minds since 2012. Our Art School offers professional guidance in drawing, classical watercolors, clay sculpting, and oil painting for students of all age groups.',
+    timings: 'Saturdays & Sundays, 10:00 AM - 12:30 PM',
+    admissionFees: '₹500',
+    monthlyFees: '₹250',
+    poc: { name: 'Arundhati Sen', role: 'Teacher', phone: '9876543210' },
+    gallery: [
+      { url: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=400&q=80', title: 'Watercolor Class' },
+      { url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=400&q=80', title: 'Creative Painting' },
+      { url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=400&q=80', title: 'Art Exhibition' }
+    ]
+  },
+  {
+    id: 'cultural-recitation',
+    name: 'Recitation',
+    category: 'Cultural',
+    icon: '🗣️',
+    about: 'Unlocking the power of spoken word. Dedicated to the fine art of voice modulation, emotional expression, poetry reading, and classical elocution training.',
+    timings: 'Wednesdays, 5:30 PM - 7:00 PM',
+    admissionFees: '₹300',
+    monthlyFees: '₹150',
+    poc: { name: 'Arundhati Sen', role: 'Teacher', phone: '9876543210' },
+    gallery: [
+      { url: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?auto=format&fit=crop&w=400&q=80', title: 'Stage Mic' },
+      { url: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=400&q=80', title: 'Poetry Books' },
+      { url: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=400&q=80', title: 'Vocal Performance' }
+    ]
+  },
+  {
+    id: 'cultural-ghungur',
+    name: 'Ghungur',
+    category: 'Cultural',
+    icon: '💃',
+    about: 'Reviving classical heritage. Ghungur Dance Academy specializes in Kathak, Bharatnatyam, and creative folk dance forms, preparing students for annual cultural events.',
+    timings: 'Fridays, 4:30 PM - 6:30 PM & Sundays, 8:00 AM - 10:00 AM',
+    admissionFees: '₹600',
+    monthlyFees: '₹300',
+    poc: { name: 'Keya Das', role: 'Student Coordinator', phone: '9883012345' },
+    gallery: [
+      { url: 'https://images.unsplash.com/photo-1615592389070-bbe97aa8c5a1?auto=format&fit=crop&w=400&q=80', title: 'Classical Dance' },
+      { url: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=400&q=80', title: 'Ghungroo Bells' },
+      { url: 'https://images.unsplash.com/photo-1547153760-18fc86324498?auto=format&fit=crop&w=400&q=80', title: 'Dance Rehearsal' }
+    ]
+  },
+  {
+    id: 'library',
+    name: 'Library',
+    category: 'Library',
+    icon: '📚',
+    about: "A sanctuary for knowledge seekers. Over 10,000 volumes covering classical literature, history, reference archives, children's corner, and free daily newspapers.",
+    timings: 'Daily (except Thursdays), 4:00 PM - 8:00 PM',
+    admissionFees: '₹200 (Refundable Deposit)',
+    monthlyFees: '₹50',
+    poc: { name: 'Subrata Dey', role: 'Member Rep', phone: '9830098300' },
+    gallery: [
+      { url: 'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=400&q=80', title: 'Library Shelves' },
+      { url: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=400&q=80', title: 'Old Books collection' },
+      { url: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=400&q=80', title: 'Quiet Reading Room' }
+    ]
+  },
+  {
+    id: 'sports-mohila-yogasana',
+    name: 'Mohila Yogasana',
+    category: 'Sports',
+    icon: '🧘‍♀️',
+    about: 'Empowering women through wellness. Focused yogic postures, flexibility training, strengthening, and stress relief exercises specifically curated for women.',
+    timings: 'Mondays & Thursdays, 7:00 AM - 8:30 AM',
+    admissionFees: '₹400',
+    monthlyFees: '₹200',
+    poc: { name: 'Sulata Ghosh', role: 'Member Coordinator', phone: '9433123456' },
+    gallery: [
+      { url: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=400&q=80', title: 'Outdoor Asanas' },
+      { url: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=400&q=80', title: 'Meditation Circle' },
+      { url: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=400&q=80', title: 'Peaceful Mindset' }
+    ]
+  },
+  {
+    id: 'sports-pranayam',
+    name: 'Pranayam',
+    category: 'Sports',
+    icon: '💨',
+    about: 'Mastering the life force. Scientific breathing exercises (Anulom-Vilom, Kapalbhati, Bhastrika) to boost immunity, expand lung capacity, and improve mental focus.',
+    timings: 'Tuesdays & Saturdays, 6:00 AM - 7:30 AM',
+    admissionFees: '₹300',
+    monthlyFees: '₹150',
+    poc: { name: 'Subrata Dey', role: 'Member Rep', phone: '9830098300' },
+    gallery: [
+      { url: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=400&q=80', title: 'Morning Breathing' },
+      { url: 'https://images.unsplash.com/photo-1495107334309-fcf20504a5ab?auto=format&fit=crop&w=400&q=80', title: 'Sunrise Meditation' },
+      { url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=400&q=80', title: 'Nature Connection' }
+    ]
+  },
+  {
+    id: 'sports-park',
+    name: 'Park',
+    category: 'Sports',
+    icon: '🌳',
+    about: "Connecting with green spaces. A beautiful community park featuring children's play equipment, safe jogging tracks, open-air PT facilities, and seasonal flower gardens.",
+    timings: 'Open Daily, 5:00 AM - 10:00 AM & 4:00 PM - 8:00 PM',
+    admissionFees: 'Free for members',
+    monthlyFees: 'Free',
+    poc: { name: 'Rohan Banerjee', role: 'Student Coordinator', phone: '8017001234' },
+    gallery: [
+      { url: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=400&q=80', title: 'Green Park Pathways' },
+      { url: 'https://images.unsplash.com/photo-1472162072942-cd5147eb3902?auto=format&fit=crop&w=400&q=80', title: 'Children Play Area' },
+      { url: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=400&q=80', title: 'Fitness Walks' }
+    ]
+  },
+  {
+    id: 'social-service-dispensary',
+    name: 'Dispensary',
+    category: 'Social Service',
+    icon: '🏥',
+    about: 'Healing hands for the community. Offering daily doctor consultations, vital medical diagnostics, and distribution of generic drugs at subsidized rates to citizens in need.',
+    timings: 'Daily (except Sundays), 9:00 AM - 12:00 PM & 5:00 PM - 7:00 PM',
+    admissionFees: '₹20 (One-time registration card)',
+    monthlyFees: '₹0 (Consultations Free)',
+    poc: { name: 'Bimal Krishna Roy', role: 'Volunteer Head', phone: '9163012345' },
+    gallery: [
+      { url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=400&q=80', title: 'Community Dispensary' },
+      { url: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=400&q=80', title: 'Medical Checkup' },
+      { url: 'https://images.unsplash.com/photo-1607619056574-7b8f304b3c72?auto=format&fit=crop&w=400&q=80', title: 'Subsidized Pharmacy' }
+    ]
+  },
+  {
+    id: 'social-service-others',
+    name: 'Others',
+    category: 'Social Service',
+    icon: '🤝',
+    about: 'Serving beyond boundaries. Coordinating blanket drives, free clothing distribution, local blood donation camps, relief efforts during crises, and environment cleanups.',
+    timings: 'As per planned activities & emergency drives',
+    admissionFees: 'Free to participate',
+    monthlyFees: 'None',
+    poc: { name: 'Bimal Krishna Roy', role: 'Volunteer Head', phone: '9163012345' },
+    gallery: [
+      { url: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=400&q=80', title: 'Volunteer Group' },
+      { url: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=400&q=80', title: 'Food Distribution' },
+      { url: 'https://images.unsplash.com/photo-1578351612726-994df7e7cf50?auto=format&fit=crop&w=400&q=80', title: 'Warm Blanket Drives' }
+    ]
+  },
+  {
+    id: 'general',
+    name: 'General',
+    category: 'General',
+    icon: '📋',
+    executiveCommittee: [
+      { name: 'Subrata Dey', role: 'President' },
+      { name: 'Bimal Krishna Roy', role: 'General Secretary' },
+      { name: 'Sulata Ghosh', role: 'Treasurer' }
+    ],
+    subCommittee: [
+      { name: 'Arundhati Sen', role: 'Cultural Convener' },
+      { name: 'Rohan Banerjee', role: 'Sports Coordinator' },
+      { name: 'Keya Das', role: 'Student Coordinator' }
+    ],
+    gallery: [
+      { url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=400&q=80', title: 'Annual General Meeting' },
+      { url: 'https://images.unsplash.com/photo-1431540015161-0bf868a2d407?auto=format&fit=crop&w=400&q=80', title: 'Community Hall Gathering' },
+      { url: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=400&q=80', title: 'Group Volunteer Photo' }
+    ]
+  }
 ];
 
 // Seed Data for initial load

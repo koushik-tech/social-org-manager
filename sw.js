@@ -1,4 +1,4 @@
-const CACHE_NAME = 'social-org-cache-v1';
+const CACHE_NAME = 'social-org-cache-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,8 @@ const ASSETS = [
   './auth.js',
   './api.js',
   './app.js',
-  './manifest.json'
+  './manifest.json',
+  './icon_512.png'
 ];
 
 // Install Event - cache core static resources

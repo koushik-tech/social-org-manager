@@ -1572,3 +1572,350 @@ textarea.form-control {
   cursor: not-allowed !important;
 }
 
+/* --- Admin User Accounts Action Icon Theme --- */
+.btn-users .action-btn-icon {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+}
+
+/* --- Department Detail Sheet Styling --- */
+.dept-details-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dept-details-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.dept-details-avatar {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px auto;
+  font-size: 2rem;
+  color: var(--primary);
+  border: 3px solid white;
+  box-shadow: var(--shadow-md);
+}
+
+.dept-details-name {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.dept-details-category {
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.dept-details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dept-section-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dept-about-text {
+  background-color: var(--background);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  border: 1px solid var(--border);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-main);
+}
+
+.dept-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.dept-stat-box {
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dept-stat-box .stat-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.dept-stat-box .stat-val {
+  font-size: 0.925rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.dept-poc-card {
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dept-poc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dept-poc-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.dept-poc-role {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dept-poc-call {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid hsl(var(--primary-hsl), 0.2);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: var(--transition-bounce);
+}
+
+.dept-poc-call:hover {
+  transform: scale(1.1);
+  background-color: var(--primary);
+  color: white;
+}
+
+/* Horizontal Scrolling Gallery */
+.dept-gallery-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 2px;
+  scrollbar-width: none;
+}
+
+.dept-gallery-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.dept-gallery-item {
+  flex-shrink: 0;
+  width: 140px;
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  aspect-ratio: 4/3;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.dept-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: var(--transition-smooth);
+}
+
+.dept-gallery-item:hover img {
+  transform: scale(1.08);
+}
+
+.dept-gallery-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 6px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Committee Lists for General Department */
+.committee-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.committee-item {
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.committee-member-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.committee-member-role {
+  font-size: 0.725rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  padding: 3px 8px;
+  border-radius: 100px;
+}
+
+/* --- Admin User Accounts Management Panel --- */
+.users-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background-color: var(--background);
+}
+
+.user-account-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.user-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.user-card-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.user-card-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.user-card-role-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.role-admin-badge { background-color: hsl(280, 80%, 95%); color: hsl(280, 80%, 45%); }
+.role-teacher-badge { background-color: hsl(40, 100%, 93%); color: var(--warning); }
+.role-student-badge { background-color: var(--secondary-light); color: var(--secondary); }
+.role-member-badge { background-color: var(--primary-light); color: var(--primary); }
+.role-wellwisher-badge { background-color: var(--success-bg); color: var(--success); }
+
+.btn-delete-user {
+  background: none;
+  border: none;
+  color: var(--error);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 6px;
+  border-radius: 50%;
+  transition: var(--transition-smooth);
+}
+
+.btn-delete-user:hover {
+  background-color: var(--error-bg);
+  transform: scale(1.1);
+}
+
+/* Credentials Share Card */
+.share-credentials-box {
+  background: linear-gradient(135deg, var(--success-bg), #eefdf4);
+  border: 1px dashed var(--success);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 15px;
+  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.share-title {
+  color: var(--success);
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.credentials-display {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  text-align: left;
+  margin-bottom: 12px;
+  color: var(--text-main);
+  white-space: pre-wrap;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+

@@ -53,7 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     persons: document.getElementById('action-persons'),
     depts: document.getElementById('action-depts'),
     subscription: document.getElementById('action-subscription'),
-    events: document.getElementById('action-events')
+    events: document.getElementById('action-events'),
+    users: document.getElementById('action-users')
   };
 
   // Persons Screen Search & Filter Selectors
@@ -112,6 +113,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const statPersonsCard = document.getElementById('stat-persons-trigger');
     const fabPerson = document.getElementById('fab-add-person');
     const fabEvent = document.getElementById('fab-add-event');
+    const actionUsers = document.getElementById('action-users');
+
+    // Hide user accounts action card for everyone except Admin
+    if (role !== 'Admin') {
+      if (actionUsers) actionUsers.classList.add('role-hidden');
+    }
 
     if (role === 'Student') {
       // Students see only Events and Departments
@@ -563,6 +570,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (quickLinks.subscription) {
     quickLinks.subscription.addEventListener('click', () => switchScreen('screen-subscription'));
   }
+  if (quickLinks.users) {
+    quickLinks.users.addEventListener('click', () => openUserManagementModal());
+  }
 
   // ==============================================
   // 6. DASHBOARD STATISTICS DATA LAYER
@@ -681,25 +691,15 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryBlocks[0].classList.add('expanded');
       }
 
-      // Event bindings for selecting a department (switches view with search filter)
+      // Event bindings for selecting a department (opens Department Details modal)
       const childCards = document.querySelectorAll('.dept-child-card');
       childCards.forEach(card => {
         card.addEventListener('click', () => {
           const deptId = card.getAttribute('data-dept-id');
-          const deptName = card.getAttribute('data-dept-name');
-          
           closeModal();
-          
-          // Switch tab to Persons
-          switchScreen('screen-persons');
-          
-          // Set search query and search input box to find members with this department
-          personsSearch.value = `dept:${deptId}`;
-          personSearchQuery = `dept:${deptId}`;
-          
-          // Render the list reflecting this department filter
-          renderPersonsList();
-          showToast(`Filtered list by department: ${deptName}`, 'info');
+          setTimeout(() => {
+            openDepartmentDetailsModal(deptId);
+          }, 320);
         });
       });
 
@@ -708,6 +708,391 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Could not load departments list.', 'error');
       console.error(e);
     }
+  };
+
+  // ==============================================
+  // 7B. DEPARTMENT DETAILS & ADMIN USER ACCOUNTS
+  // ==============================================
+
+  const openDepartmentDetailsModal = async (deptId) => {
+    showLoader('Fetching department details...');
+    try {
+      const depts = await window.ApiService.getDepartments();
+      const dept = depts.find(d => d.id === deptId);
+      hideLoader();
+
+      if (!dept) {
+        showToast('Department not found.', 'error');
+        return;
+      }
+
+      let contentHTML = '';
+
+      if (deptId === 'general') {
+        let execHTML = '';
+        dept.executiveCommittee.forEach(m => {
+          execHTML += `
+            <div class="committee-item">
+              <span class="committee-member-name">${m.name}</span>
+              <span class="committee-member-role">${m.role}</span>
+            </div>
+          `;
+        });
+
+        let subHTML = '';
+        dept.subCommittee.forEach(m => {
+          subHTML += `
+            <div class="committee-item">
+              <span class="committee-member-name">${m.name}</span>
+              <span class="committee-member-role">${m.role}</span>
+            </div>
+          `;
+        });
+
+        let galleryHTML = '';
+        dept.gallery.forEach(img => {
+          galleryHTML += `
+            <div class="dept-gallery-item">
+              <img src="${img.url}" alt="${img.title}" loading="lazy">
+              <div class="dept-gallery-title">${img.title}</div>
+            </div>
+          `;
+        });
+
+        contentHTML = `
+          <div class="dept-details-modal">
+            <div class="dept-details-header">
+              <div class="dept-details-avatar">${dept.icon}</div>
+              <h2 class="dept-details-name">${dept.name} Department</h2>
+              <span class="badge badge-member" style="margin-bottom: 8px;">General Wing</span>
+            </div>
+
+            <div class="dept-details-body">
+              <div>
+                <div class="dept-section-title"><i class="fa-solid fa-users-gear"></i> Executive Committee</div>
+                <div class="committee-list">
+                  ${execHTML}
+                </div>
+              </div>
+
+              <div style="margin-top: 10px;">
+                <div class="dept-section-title"><i class="fa-solid fa-people-group"></i> Sub-Committee</div>
+                <div class="committee-list">
+                  ${subHTML}
+                </div>
+              </div>
+
+              <div style="margin-top: 10px;">
+                <div class="dept-section-title"><i class="fa-solid fa-images"></i> Wing Gallery</div>
+                <div class="dept-gallery-scroll">
+                  ${galleryHTML}
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer-btns" style="margin-top: 20px;">
+              <button class="btn btn-secondary" id="btn-back-to-tree" style="width: 48%;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+              <button class="btn btn-primary" id="btn-view-dept-members" style="width: 48%;"><i class="fa-solid fa-users"></i> Enrolled Members</button>
+            </div>
+          </div>
+        `;
+      } else {
+        let galleryHTML = '';
+        dept.gallery.forEach(img => {
+          galleryHTML += `
+            <div class="dept-gallery-item">
+              <img src="${img.url}" alt="${img.title}" loading="lazy">
+              <div class="dept-gallery-title">${img.title}</div>
+            </div>
+          `;
+        });
+
+        contentHTML = `
+          <div class="dept-details-modal">
+            <div class="dept-details-header">
+              <div class="dept-details-avatar">${dept.icon}</div>
+              <h2 class="dept-details-name">${dept.name}</h2>
+              <span class="badge ${dept.category === 'Cultural' ? 'badge-student' : dept.category === 'Sports' ? 'badge-teacher' : 'badge-member'}" style="margin-bottom: 8px;">${dept.category} Wing</span>
+            </div>
+
+            <div class="dept-details-body">
+              <div>
+                <div class="dept-section-title"><i class="fa-solid fa-circle-info"></i> About the Department</div>
+                <div class="dept-about-text">
+                  ${dept.about}
+                </div>
+              </div>
+
+              <div>
+                <div class="dept-section-title"><i class="fa-solid fa-clock"></i> Timings</div>
+                <div class="dept-about-text" style="font-weight: 600;">
+                  <i class="fa-regular fa-calendar-days" style="color:var(--primary); margin-right: 6px;"></i> ${dept.timings}
+                </div>
+              </div>
+
+              <div class="dept-stats-grid">
+                <div class="dept-stat-box">
+                  <span class="stat-label">Admission Fees</span>
+                  <span class="stat-val"><i class="fa-solid fa-indian-rupee-sign" style="font-size:0.75rem; color:var(--success);"></i> ${dept.admissionFees}</span>
+                </div>
+                <div class="dept-stat-box">
+                  <span class="stat-label">Monthly Fees</span>
+                  <span class="stat-val"><i class="fa-solid fa-indian-rupee-sign" style="font-size:0.75rem; color:var(--primary);"></i> ${dept.monthlyFees}/mo</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="dept-section-title"><i class="fa-solid fa-user-tie"></i> Point of Contact (POC)</div>
+                <div class="dept-poc-card">
+                  <div class="dept-poc-info">
+                    <span class="dept-poc-name">${dept.poc.name}</span>
+                    <span class="dept-poc-role">${dept.poc.role}</span>
+                  </div>
+                  <a href="tel:${dept.poc.phone}" class="dept-poc-call" title="Call Point of Contact">
+                    <i class="fa-solid fa-phone"></i>
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <div class="dept-section-title"><i class="fa-solid fa-images"></i> Department Gallery</div>
+                <div class="dept-gallery-scroll">
+                  ${galleryHTML}
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer-btns" style="margin-top: 20px;">
+              <button class="btn btn-secondary" id="btn-back-to-tree" style="width: 48%;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+              <button class="btn btn-primary" id="btn-view-dept-members" style="width: 48%;"><i class="fa-solid fa-users"></i> Enrolled Members</button>
+            </div>
+          </div>
+        `;
+      }
+
+      openModal(`${dept.name} Details`, contentHTML);
+
+      document.getElementById('btn-back-to-tree').addEventListener('click', () => {
+        closeModal();
+        setTimeout(() => {
+          openDepartmentsModal();
+        }, 320);
+      });
+
+      document.getElementById('btn-view-dept-members').addEventListener('click', () => {
+        closeModal();
+        switchScreen('screen-persons');
+        personsSearch.value = `dept:${deptId}`;
+        personSearchQuery = `dept:${deptId}`;
+        renderPersonsList();
+        showToast(`Filtered members list by department: ${dept.name}`, 'info');
+      });
+
+    } catch (e) {
+      hideLoader();
+      showToast('Could not load department details.', 'error');
+      console.error(e);
+    }
+  };
+
+  const openUserManagementModal = () => {
+    const currentUser = window.AuthService.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'Admin') {
+      showToast('Permission denied. Admins only.', 'error');
+      return;
+    }
+
+    const renderUsersListHTML = () => {
+      const users = window.AuthService.getUsers();
+      let usersHTML = '';
+
+      users.forEach(u => {
+        let badgeClass = 'role-member-badge';
+        if (u.role === 'Admin') badgeClass = 'role-admin-badge';
+        if (u.role === 'Teacher') badgeClass = 'role-teacher-badge';
+        if (u.role === 'Student') badgeClass = 'role-student-badge';
+        if (u.role === 'Well Wishers') badgeClass = 'role-wellwisher-badge';
+
+        const isSelf = u.username.toLowerCase() === currentUser.username.toLowerCase();
+        const deleteBtnHTML = (isSelf || u.username.toLowerCase() === 'admin') ? '' : `
+          <button class="btn-delete-user" data-username="${u.username}" title="Delete User Account">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        `;
+
+        usersHTML += `
+          <div class="user-account-card">
+            <div class="user-card-left">
+              <span class="user-card-name">${u.name}</span>
+              <div class="user-card-details">
+                <span>@${u.username}</span>
+                <span class="user-card-role-badge ${badgeClass}">${u.role}</span>
+              </div>
+            </div>
+            ${deleteBtnHTML}
+          </div>
+        `;
+      });
+
+      return usersHTML;
+    };
+
+    const modalHTML = `
+      <div class="form-view" style="padding-bottom: 20px;">
+        <div id="credentials-share-area" style="display: none;"></div>
+
+        <div class="dept-section-title" style="margin-bottom: 8px;"><i class="fa-solid fa-users-gear"></i> Active Accounts</div>
+        <div class="users-list-container" id="admin-users-list-container">
+          ${renderUsersListHTML()}
+        </div>
+
+        <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 8px;"><i class="fa-solid fa-user-plus"></i> Create New User Account</div>
+        <form id="admin-create-user-form">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="new-user-name">Full Name</label>
+            <div class="input-container">
+              <i class="fa-solid fa-user-tag"></i>
+              <input type="text" id="new-user-name" class="form-control" placeholder="E.g. Koushik Dey" required style="padding: 10px 10px 10px 40px; font-size: 0.85rem;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="new-user-username">Username / User ID</label>
+            <div class="input-container">
+              <i class="fa-solid fa-at"></i>
+              <input type="text" id="new-user-username" class="form-control" placeholder="E.g. koushik_dey" required pattern="[a-zA-Z0-9_-]{3,20}" title="3-20 characters, alphanumeric or underscores" style="padding: 10px 10px 10px 40px; font-size: 0.85rem;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="new-user-password">Password</label>
+            <div class="input-container">
+              <i class="fa-solid fa-key"></i>
+              <input type="text" id="new-user-password" class="form-control" placeholder="Enter secure password" required style="padding: 10px 10px 10px 40px; font-size: 0.85rem;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 18px;">
+            <label for="new-user-role">System Access Role</label>
+            <div class="input-container">
+              <i class="fa-solid fa-shield-halved"></i>
+              <select id="new-user-role" class="form-control" required style="padding: 10px 10px 10px 40px; font-size: 0.85rem;">
+                <option value="" disabled selected>Select Role</option>
+                <option value="Member">Member</option>
+                <option value="Teacher">Teacher</option>
+                <option value="Student">Student</option>
+                <option value="Well Wishers">Well Wishers</option>
+                <option value="Admin">Admin</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">
+            <i class="fa-solid fa-user-plus"></i> Create User Credentials
+          </button>
+        </form>
+      </div>
+    `;
+
+    openModal('User Accounts', modalHTML);
+
+    const usersListContainer = document.getElementById('admin-users-list-container');
+    const createUserForm = document.getElementById('admin-create-user-form');
+    const shareArea = document.getElementById('credentials-share-area');
+
+    createUserForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const nameVal = document.getElementById('new-user-name').value.trim();
+      const usernameVal = document.getElementById('new-user-username').value.trim();
+      const passwordVal = document.getElementById('new-user-password').value;
+      const roleVal = document.getElementById('new-user-role').value;
+
+      if (!nameVal || !usernameVal || !passwordVal || !roleVal) {
+        showToast('Please fill in all user account fields.', 'error');
+        return;
+      }
+
+      showLoader('Creating user account...');
+      
+      setTimeout(() => {
+        try {
+          window.AuthService.addUser({
+            username: usernameVal,
+            password: passwordVal,
+            name: nameVal,
+            role: roleVal
+          });
+          
+          hideLoader();
+          showToast(`Account successfully created for ${nameVal}!`, 'success');
+          
+          usersListContainer.innerHTML = renderUsersListHTML();
+          bindDeleteHandlers();
+          
+          const portalUrl = window.location.href.split('#')[0];
+          const credentialsText = `Hi ${nameVal},\n\nHere are your login credentials for Udayan360 Portal:\nPortal: ${portalUrl}\nUser ID: ${usernameVal}\nPassword: ${passwordVal}\nRole: ${roleVal}\n\nDo not share these credentials with anyone else.`;
+          
+          shareArea.innerHTML = `
+            <div class="share-credentials-box">
+              <div class="share-title">
+                <i class="fa-solid fa-circle-check"></i> Account Created Successfully!
+              </div>
+              <div class="credentials-display" id="share-creds-text">${credentialsText}</div>
+              <button class="btn btn-secondary" id="btn-copy-creds" style="width: 100%; padding: 10px; background-color: var(--success); color: white; border: none;">
+                <i class="fa-solid fa-copy"></i> Copy Credentials & Share
+              </button>
+            </div>
+          `;
+          shareArea.style.display = 'block';
+
+          document.getElementById('btn-copy-creds').addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(credentialsText);
+              showToast('Credentials copied to clipboard!', 'success');
+            } catch (err) {
+              showToast('Failed to copy to clipboard.', 'error');
+            }
+          });
+
+          createUserForm.reset();
+          
+        } catch (err) {
+          hideLoader();
+          showToast(err.message, 'error');
+        }
+      }, 500);
+    });
+
+    const bindDeleteHandlers = () => {
+      const deleteButtons = usersListContainer.querySelectorAll('.btn-delete-user');
+      deleteButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const username = btn.getAttribute('data-username');
+          const confirmDelete = confirm(`Are you sure you want to delete the user account "@${username}"? The user will instantly lose all access to Udayan360.`);
+          if (!confirmDelete) return;
+
+          showLoader('Deleting user account...');
+          setTimeout(() => {
+            try {
+              window.AuthService.deleteUser(username);
+              hideLoader();
+              showToast(`Account "@${username}" deleted successfully.`, 'success');
+              
+              usersListContainer.innerHTML = renderUsersListHTML();
+              bindDeleteHandlers();
+              
+              shareArea.style.display = 'none';
+            } catch (err) {
+              hideLoader();
+              showToast(err.message, 'error');
+            }
+          }, 400);
+        });
+      });
+    };
+
+    bindDeleteHandlers();
   };
 
   stats.deptsCard.addEventListener('click', openDepartmentsModal);
