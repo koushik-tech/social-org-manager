@@ -726,6 +726,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // Check role based permissions for Edit action
+      const user = window.AuthService.getCurrentUser();
+      const showEditBtn = user && user.role === 'Admin';
+
       let contentHTML = '';
 
       if (deptId === 'general') {
@@ -790,9 +794,10 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             </div>
 
-            <div class="modal-footer-btns" style="margin-top: 20px;">
-              <button class="btn btn-secondary" id="btn-back-to-tree" style="width: 48%;"><i class="fa-solid fa-arrow-left"></i> Back</button>
-              <button class="btn btn-primary" id="btn-view-dept-members" style="width: 48%;"><i class="fa-solid fa-users"></i> Enrolled Members</button>
+            <div class="modal-footer-btns" style="margin-top: 20px; flex-wrap: wrap;">
+              <button class="btn btn-secondary" id="btn-back-to-tree" style="flex: 1; min-width: 80px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+              <button class="btn btn-primary" id="btn-view-dept-members" style="flex: 2; min-width: 150px;"><i class="fa-solid fa-users"></i> Members</button>
+              ${showEditBtn ? `<button class="btn btn-secondary" id="btn-edit-dept" style="width: 100%; margin-top: 8px; background-color: var(--primary-light); color: var(--primary); border-color: hsl(var(--primary-hsl), 0.2);"><i class="fa-solid fa-pen-to-square"></i> Edit Wing Details</button>` : ''}
             </div>
           </div>
         `;
@@ -862,9 +867,10 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             </div>
 
-            <div class="modal-footer-btns" style="margin-top: 20px;">
-              <button class="btn btn-secondary" id="btn-back-to-tree" style="width: 48%;"><i class="fa-solid fa-arrow-left"></i> Back</button>
-              <button class="btn btn-primary" id="btn-view-dept-members" style="width: 48%;"><i class="fa-solid fa-users"></i> Enrolled Members</button>
+            <div class="modal-footer-btns" style="margin-top: 20px; flex-wrap: wrap;">
+              <button class="btn btn-secondary" id="btn-back-to-tree" style="flex: 1; min-width: 80px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+              <button class="btn btn-primary" id="btn-view-dept-members" style="flex: 2; min-width: 150px;"><i class="fa-solid fa-users"></i> Members</button>
+              ${showEditBtn ? `<button class="btn btn-secondary" id="btn-edit-dept" style="width: 100%; margin-top: 8px; background-color: var(--primary-light); color: var(--primary); border-color: hsl(var(--primary-hsl), 0.2);"><i class="fa-solid fa-pen-to-square"></i> Edit Wing Details</button>` : ''}
             </div>
           </div>
         `;
@@ -887,6 +893,281 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPersonsList();
         showToast(`Filtered members list by department: ${dept.name}`, 'info');
       });
+
+      if (showEditBtn) {
+        document.getElementById('btn-edit-dept').addEventListener('click', () => {
+          closeModal();
+          setTimeout(() => {
+            openDepartmentEditFormModal(deptId);
+          }, 320);
+        });
+      }
+
+    } catch (e) {
+      hideLoader();
+      showToast('Could not load department details.', 'error');
+      console.error(e);
+    }
+  };
+
+  const openDepartmentEditFormModal = async (deptId) => {
+    showLoader('Loading department details...');
+    try {
+      const depts = await window.ApiService.getDepartments();
+      const dept = depts.find(d => d.id === deptId);
+      hideLoader();
+
+      if (!dept) {
+        showToast('Department not found.', 'error');
+        return;
+      }
+
+      let formHTML = '';
+
+      if (deptId === 'general') {
+        let execInputs = '';
+        dept.executiveCommittee.forEach((m, idx) => {
+          execInputs += `
+            <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px; background: white;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Executive #${idx + 1} (${m.role})</div>
+              <input type="hidden" id="edit-exec-role-${idx}" value="${m.role}">
+              <div class="form-group" style="margin-bottom: 6px;">
+                <input type="text" id="edit-exec-name-${idx}" class="form-control" placeholder="Name" required value="${m.name}" style="padding: 8px 12px; font-size: 0.85rem;">
+              </div>
+            </div>
+          `;
+        });
+
+        let subInputs = '';
+        dept.subCommittee.forEach((m, idx) => {
+          subInputs += `
+            <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px; background: white;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Sub-Committee #${idx + 1} (${m.role})</div>
+              <input type="hidden" id="edit-sub-role-${idx}" value="${m.role}">
+              <div class="form-group" style="margin-bottom: 6px;">
+                <input type="text" id="edit-sub-name-${idx}" class="form-control" placeholder="Name" required value="${m.name}" style="padding: 8px 12px; font-size: 0.85rem;">
+              </div>
+            </div>
+          `;
+        });
+
+        let galleryInputs = '';
+        dept.gallery.forEach((img, idx) => {
+          galleryInputs += `
+            <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px; background: white;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Gallery Image #${idx + 1}</div>
+              <div class="form-group" style="margin-bottom: 6px;">
+                <input type="text" id="edit-gallery-title-${idx}" class="form-control" placeholder="Caption/Title" required value="${img.title}" style="padding: 8px 12px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <input type="url" id="edit-gallery-url-${idx}" class="form-control" placeholder="Unsplash Image URL" required value="${img.url}" style="padding: 8px 12px; font-size: 0.85rem;">
+              </div>
+            </div>
+          `;
+        });
+
+        formHTML = `
+          <div class="form-view" style="padding-bottom: 20px;">
+            <form id="dept-edit-form-general">
+              <div class="dept-section-title" style="margin-bottom: 10px;"><i class="fa-solid fa-users-gear"></i> Executive Committee</div>
+              ${execInputs}
+
+              <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-people-group"></i> Sub-Committee</div>
+              ${subInputs}
+
+              <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-images"></i> Gallery Images</div>
+              ${galleryInputs}
+
+              <div class="modal-footer-btns" style="margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-edit-dept" style="width: 48%;"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                <button type="submit" class="btn btn-primary" style="width: 48%;"><i class="fa-solid fa-floppy-disk"></i> Save Wing</button>
+              </div>
+            </form>
+          </div>
+        `;
+      } else {
+        let galleryInputs = '';
+        dept.gallery.forEach((img, idx) => {
+          galleryInputs += `
+            <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px; background: white;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Gallery Image #${idx + 1}</div>
+              <div class="form-group" style="margin-bottom: 6px;">
+                <input type="text" id="edit-gallery-title-${idx}" class="form-control" placeholder="Caption/Title" required value="${img.title}" style="padding: 8px 12px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <input type="url" id="edit-gallery-url-${idx}" class="form-control" placeholder="Unsplash Image URL" required value="${img.url}" style="padding: 8px 12px; font-size: 0.85rem;">
+              </div>
+            </div>
+          `;
+        });
+
+        formHTML = `
+          <div class="form-view" style="padding-bottom: 20px;">
+            <form id="dept-edit-form-non-general">
+              <div class="form-group">
+                <label for="edit-dept-about">About the Department</label>
+                <textarea id="edit-dept-about" class="form-control" required style="padding: 12px; font-size: 0.875rem; height: 90px;">${dept.about}</textarea>
+              </div>
+
+              <div class="form-group">
+                <label for="edit-dept-timings">Timings</label>
+                <div class="input-container">
+                  <i class="fa-regular fa-clock"></i>
+                  <input type="text" id="edit-dept-timings" class="form-control" placeholder="E.g. Saturdays, 4:00 PM - 6:00 PM" required value="${dept.timings}" style="padding-left: 40px; font-size: 0.875rem;">
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                  <label for="edit-dept-adm-fees">Admission Fees</label>
+                  <input type="text" id="edit-dept-adm-fees" class="form-control" placeholder="E.g. ₹500" required value="${dept.admissionFees}" style="padding: 10px 12px; font-size: 0.875rem;">
+                </div>
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                  <label for="edit-dept-mon-fees">Monthly Fees</label>
+                  <input type="text" id="edit-dept-mon-fees" class="form-control" placeholder="E.g. ₹200" required value="${dept.monthlyFees}" style="padding: 10px 12px; font-size: 0.875rem;">
+                </div>
+              </div>
+
+              <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-user-tie"></i> Point of Contact (POC)</div>
+              <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; background: white; margin-bottom: 16px;">
+                <div class="form-group" style="margin-bottom: 10px;">
+                  <label for="edit-dept-poc-name" style="font-size: 0.75rem; margin-bottom: 4px;">POC Full Name</label>
+                  <input type="text" id="edit-dept-poc-name" class="form-control" placeholder="E.g. Arundhati Sen" required value="${dept.poc.name}" style="padding: 8px 12px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group" style="margin-bottom: 10px;">
+                  <label for="edit-dept-poc-role" style="font-size: 0.75rem; margin-bottom: 4px;">POC Designation/Role</label>
+                  <input type="text" id="edit-dept-poc-role" class="form-control" placeholder="E.g. Teacher" required value="${dept.poc.role}" style="padding: 8px 12px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="edit-dept-poc-phone" style="font-size: 0.75rem; margin-bottom: 4px;">POC Phone Number</label>
+                  <input type="tel" id="edit-dept-poc-phone" class="form-control" placeholder="10-digit number" required pattern="[0-9]{10}" title="Please enter a valid 10-digit mobile number" value="${dept.poc.phone}" style="padding: 8px 12px; font-size: 0.85rem;">
+                </div>
+              </div>
+
+              <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-images"></i> Gallery Images</div>
+              ${galleryInputs}
+
+              <div class="modal-footer-btns" style="margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-edit-dept" style="width: 48%;"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                <button type="submit" class="btn btn-primary" style="width: 48%;"><i class="fa-solid fa-floppy-disk"></i> Save Wing</button>
+              </div>
+            </form>
+          </div>
+        `;
+      }
+
+      openModal(`Edit ${dept.name} Wing`, formHTML);
+
+      document.getElementById('btn-cancel-edit-dept').addEventListener('click', () => {
+        closeModal();
+        setTimeout(() => {
+          openDepartmentDetailsModal(deptId);
+        }, 320);
+      });
+
+      const editFormGeneral = document.getElementById('dept-edit-form-general');
+      if (editFormGeneral) {
+        editFormGeneral.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const newExec = [];
+          for (let i = 0; i < dept.executiveCommittee.length; i++) {
+            newExec.push({
+              name: document.getElementById(`edit-exec-name-${i}`).value.trim(),
+              role: document.getElementById(`edit-exec-role-${i}`).value
+            });
+          }
+
+          const newSub = [];
+          for (let i = 0; i < dept.subCommittee.length; i++) {
+            newSub.push({
+              name: document.getElementById(`edit-sub-name-${i}`).value.trim(),
+              role: document.getElementById(`edit-sub-role-${i}`).value
+            });
+          }
+
+          const newGallery = [];
+          for (let i = 0; i < dept.gallery.length; i++) {
+            newGallery.push({
+              title: document.getElementById(`edit-gallery-title-${i}`).value.trim(),
+              url: document.getElementById(`edit-gallery-url-${i}`).value.trim()
+            });
+          }
+
+          showLoader('Updating wing details...');
+          try {
+            await window.ApiService.updateDepartment(deptId, {
+              executiveCommittee: newExec,
+              subCommittee: newSub,
+              gallery: newGallery
+            });
+
+            hideLoader();
+            showToast('Wing details updated successfully!', 'success');
+            closeModal();
+            setTimeout(() => {
+              openDepartmentDetailsModal(deptId);
+            }, 320);
+          } catch (err) {
+            hideLoader();
+            showToast('Failed to update details: ' + err.message, 'error');
+          }
+        });
+      }
+
+      const editFormNonGeneral = document.getElementById('dept-edit-form-non-general');
+      if (editFormNonGeneral) {
+        editFormNonGeneral.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          const aboutVal = document.getElementById('edit-dept-about').value.trim();
+          const timingsVal = document.getElementById('edit-dept-timings').value.trim();
+          const admFeesVal = document.getElementById('edit-dept-adm-fees').value.trim();
+          const monFeesVal = document.getElementById('edit-dept-mon-fees').value.trim();
+          
+          const pocVal = {
+            name: document.getElementById('edit-dept-poc-name').value.trim(),
+            role: document.getElementById('edit-dept-poc-role').value.trim(),
+            phone: document.getElementById('edit-dept-poc-phone').value.trim()
+          };
+
+          const newGallery = [];
+          for (let i = 0; i < dept.gallery.length; i++) {
+            newGallery.push({
+              title: document.getElementById(`edit-gallery-title-${i}`).value.trim(),
+              url: document.getElementById(`edit-gallery-url-${i}`).value.trim()
+            });
+          }
+
+          showLoader('Updating wing details...');
+          try {
+            await window.ApiService.updateDepartment(deptId, {
+              about: aboutVal,
+              timings: timingsVal,
+              admissionFees: admFeesVal,
+              monthlyFees: monFeesVal,
+              poc: pocVal,
+              gallery: newGallery
+            });
+
+            hideLoader();
+            showToast('Wing details updated successfully!', 'success');
+            closeModal();
+            setTimeout(() => {
+              openDepartmentDetailsModal(deptId);
+            }, 320);
+          } catch (err) {
+            hideLoader();
+            showToast('Failed to update details: ' + err.message, 'error');
+          }
+        });
+      }
+
+    } catch (e) {
+      hideLoader();
+      showToast('Could not load edit structures.', 'error');
+    }
+  };
 
     } catch (e) {
       hideLoader();
@@ -1215,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="detail-row">
               <i class="fa-solid fa-envelope"></i>
-              <span>${person.email}</span>
+              <span>${person.email || 'Not specified'}</span>
             </div>
             <div class="detail-row">
               <i class="fa-solid fa-credit-card"></i>
@@ -1229,9 +1510,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <a href="tel:${person.phone}" class="btn-contact btn-phone-call" stop-propagation>
               <i class="fa-solid fa-phone"></i> Call
             </a>
+            ${person.email ? `
             <a href="mailto:${person.email}" class="btn-contact btn-email-send" stop-propagation>
               <i class="fa-solid fa-envelope"></i> Email
-            </a>
+            </a>` : ''}
           </div>
         `;
 
@@ -1343,7 +1625,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="detail-item-title">Email Address</div>
               <div class="detail-item-value">
                 <i class="fa-solid fa-envelope" style="color:var(--text-muted);"></i>
-                <a href="mailto:${person.email}">${person.email}</a>
+                ${person.email ? `<a href="mailto:${person.email}">${person.email}</a>` : '<span style="color: var(--text-muted); font-style: italic;">Not specified</span>'}
               </div>
             </div>
 
@@ -1510,10 +1792,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <div class="form-group">
-              <label for="form-person-email">Email Address</label>
+              <label for="form-person-email">Email Address (Optional)</label>
               <div class="input-container">
                 <i class="fa-solid fa-envelope"></i>
-                <input type="email" id="form-person-email" class="form-control" placeholder="Enter email address" required value="${isEditMode ? personToEdit.email : ''}" ${disabledAttr}>
+                <input type="email" id="form-person-email" class="form-control" placeholder="Enter email address" value="${isEditMode ? (personToEdit.email || '') : ''}" ${disabledAttr}>
               </div>
             </div>
 
@@ -1583,8 +1865,8 @@ document.addEventListener('DOMContentLoaded', () => {
           selectedDepts.push(box.value);
         });
 
-        // Basic validation checklist
-        if (!nameVal || !categoryVal || !phoneVal || !emailVal) {
+        // Basic validation checklist (email is now optional)
+        if (!nameVal || !categoryVal || !phoneVal) {
           showToast('Please fill out all mandatory fields.', 'error');
           return;
         }

@@ -6,7 +6,8 @@
 
 const STORAGE_KEYS = {
   PERSONS: 'social_org_db_persons',
-  EVENTS: 'social_org_db_events'
+  EVENTS: 'social_org_db_events',
+  DEPARTMENTS: 'social_org_db_departments'
 };
 
 // Fixed Department Hierarchical Structure
@@ -557,14 +558,111 @@ const ApiService = {
   },
 
   // --- DEPARTMENTS MODULE ---
-
+ 
   /**
    * Get all departments list
    * @returns {Promise<Array>}
    */
   getDepartments: async () => {
     await delay(200);
-    return DEPARTMENTS_DB;
+
+    if (activeCloudProvider === 'supabase' && supabaseClientInstance) {
+      try {
+        const { data, error } = await supabaseClientInstance
+          .from('departments')
+          .select('*');
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const parsedData = data.map(d => ({
+            ...d,
+            poc: typeof d.poc === 'string' ? JSON.parse(d.poc) : d.poc,
+            gallery: typeof d.gallery === 'string' ? JSON.parse(d.gallery) : d.gallery,
+            executiveCommittee: typeof d.executiveCommittee === 'string' ? JSON.parse(d.executiveCommittee) : d.executiveCommittee,
+            subCommittee: typeof d.subCommittee === 'string' ? JSON.parse(d.subCommittee) : d.subCommittee
+          }));
+          setStorageData(STORAGE_KEYS.DEPARTMENTS, parsedData);
+          return parsedData;
+        } else if (data && data.length === 0) {
+          // Cloud table is empty, auto-seed with DEPARTMENTS_DB
+          await supabaseClientInstance.from('departments').insert(DEPARTMENTS_DB);
+          setStorageData(STORAGE_KEYS.DEPARTMENTS, DEPARTMENTS_DB);
+          return DEPARTMENTS_DB;
+        }
+      } catch (err) {
+        console.warn('Supabase fetch departments failed. Using local cache:', err);
+      }
+    } else if (activeCloudProvider === 'firebase' && firebaseDbInstance) {
+      try {
+        const snapshot = await firebaseDbInstance.collection('departments').get();
+        const data = [];
+        snapshot.forEach(doc => {
+          data.push(doc.data());
+        });
+        if (data.length > 0) {
+          // Sort to match seed order roughly
+          data.sort((a, b) => a.id.localeCompare(b.id));
+          setStorageData(STORAGE_KEYS.DEPARTMENTS, data);
+          return data;
+        } else {
+          // Cloud collection is empty, auto-seed with DEPARTMENTS_DB
+          for (const d of DEPARTMENTS_DB) {
+            await firebaseDbInstance.collection('departments').doc(d.id).set(d);
+          }
+          setStorageData(STORAGE_KEYS.DEPARTMENTS, DEPARTMENTS_DB);
+          return DEPARTMENTS_DB;
+        }
+      } catch (err) {
+        console.warn('Firebase fetch departments failed. Using local cache:', err);
+      }
+    }
+
+    return getStorageData(STORAGE_KEYS.DEPARTMENTS, DEPARTMENTS_DB);
+  },
+
+  /**
+   * Update details of a specific department
+   * @param {string} deptId
+   * @param {Object} updatedData
+   * @returns {Promise<Object>} The updated department object
+   */
+  updateDepartment: async (deptId, updatedData) => {
+    await delay(300);
+
+    const departments = getStorageData(STORAGE_KEYS.DEPARTMENTS, DEPARTMENTS_DB);
+    const index = departments.findIndex(d => d.id === deptId);
+    if (index === -1) throw new Error('Department not found.');
+
+    departments[index] = {
+      ...departments[index],
+      ...updatedData,
+      id: deptId // lock ID
+    };
+
+    // Update Local Storage
+    setStorageData(STORAGE_KEYS.DEPARTMENTS, departments);
+
+    // Sync to Cloud Database if configured
+    if (activeCloudProvider === 'supabase' && supabaseClientInstance) {
+      try {
+        const payload = { ...departments[index] };
+        const { error } = await supabaseClientInstance
+          .from('departments')
+          .upsert([payload], { onConflict: 'id' });
+        if (error) throw error;
+      } catch (err) {
+        console.error('Supabase department update failed:', err);
+        throw new Error('Recorded locally (Offline Mode), but cloud sync failed: ' + err.message);
+      }
+    } else if (activeCloudProvider === 'firebase' && firebaseDbInstance) {
+      try {
+        await firebaseDbInstance.collection('departments').doc(deptId).set(departments[index], { merge: true });
+      } catch (err) {
+        console.error('Firebase department update failed:', err);
+        throw new Error('Recorded locally (Offline Mode), but cloud sync failed: ' + err.message);
+      }
+    }
+
+    return departments[index];
   },
 
   /**
@@ -759,6 +857,7 @@ const ApiService = {
     
     const localPersons = getStorageData(STORAGE_KEYS.PERSONS, SEED_PERSONS);
     const localEvents = getStorageData(STORAGE_KEYS.EVENTS, SEED_EVENTS);
+    const localDepts = getStorageData(STORAGE_KEYS.DEPARTMENTS, DEPARTMENTS_DB);
     
     if (activeCloudProvider === 'supabase' && supabaseClientInstance) {
       try {
@@ -773,6 +872,13 @@ const ApiService = {
           const { error } = await supabaseClientInstance
             .from('events')
             .upsert(localEvents, { onConflict: 'id' });
+          if (error) throw error;
+        }
+
+        if (localDepts.length > 0) {
+          const { error } = await supabaseClientInstance
+            .from('departments')
+            .upsert(localDepts, { onConflict: 'id' });
           if (error) throw error;
         }
       } catch (err) {
@@ -790,6 +896,11 @@ const ApiService = {
         localEvents.forEach(event => {
           const docRef = firebaseDbInstance.collection('events').doc(event.id);
           batch.set(docRef, event, { merge: true });
+        });
+
+        localDepts.forEach(dept => {
+          const docRef = firebaseDbInstance.collection('departments').doc(dept.id);
+          batch.set(docRef, dept, { merge: true });
         });
         
         await batch.commit();
@@ -819,9 +930,23 @@ const ApiService = {
           .from('events')
           .select('*');
         if (eError) throw eError;
+
+        const { data: depts, error: dError } = await supabaseClientInstance
+          .from('departments')
+          .select('*');
+        if (dError) throw dError;
         
         setStorageData(STORAGE_KEYS.PERSONS, persons || []);
         setStorageData(STORAGE_KEYS.EVENTS, events || []);
+
+        const parsedDepts = depts ? depts.map(d => ({
+          ...d,
+          poc: typeof d.poc === 'string' ? JSON.parse(d.poc) : d.poc,
+          gallery: typeof d.gallery === 'string' ? JSON.parse(d.gallery) : d.gallery,
+          executiveCommittee: typeof d.executiveCommittee === 'string' ? JSON.parse(d.executiveCommittee) : d.executiveCommittee,
+          subCommittee: typeof d.subCommittee === 'string' ? JSON.parse(d.subCommittee) : d.subCommittee
+        })) : [];
+        setStorageData(STORAGE_KEYS.DEPARTMENTS, parsedDepts);
       } catch (err) {
         throw new Error('Supabase download failed: ' + err.message);
       }
@@ -838,9 +963,16 @@ const ApiService = {
         eventsSnap.forEach(doc => {
           events.push(doc.data());
         });
+
+        const deptsSnap = await firebaseDbInstance.collection('departments').get();
+        const depts = [];
+        deptsSnap.forEach(doc => {
+          depts.push(doc.data());
+        });
         
         setStorageData(STORAGE_KEYS.PERSONS, persons);
         setStorageData(STORAGE_KEYS.EVENTS, events);
+        setStorageData(STORAGE_KEYS.DEPARTMENTS, depts);
       } catch (err) {
         throw new Error('Firebase download failed: ' + err.message);
       }
