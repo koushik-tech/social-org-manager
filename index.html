@@ -178,9 +178,15 @@
 
         <!-- Compiled Common Gallery -->
         <h2 class="section-title" style="margin-top: 24px;"><i class="fa-solid fa-images"></i> Organization Gallery</h2>
-        <div class="common-gallery-container" id="common-gallery-container">
-          <!-- Compiled photos from all wings will render dynamically here -->
+        <div class="common-gallery-slider-wrapper" style="position: relative; width: 100%;">
+          <button class="gallery-slider-btn slider-prev" id="gallery-slider-prev" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
+          <div class="common-gallery-container" id="common-gallery-container">
+            <!-- Compiled photos from all wings will render dynamically here -->
+          </div>
+          <button class="gallery-slider-btn slider-next" id="gallery-slider-next" aria-label="Scroll right"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
+        <!-- Blank spacer to prevent any content from being cut off by the absolute bottom nav -->
+        <div class="screen-spacer" style="height: 100px; width: 100%; flex-shrink: 0;"></div>
       </div>
 
       <!-- ============================================== -->
@@ -218,6 +224,8 @@
         <button class="fab" id="fab-add-person" title="Add New Person">
           <i class="fa-solid fa-plus"></i>
         </button>
+        <!-- Blank spacer to prevent any content from being cut off by the absolute bottom nav -->
+        <div class="screen-spacer" style="height: 100px; width: 100%; flex-shrink: 0;"></div>
       </div>
 
       <!-- ============================================== -->
@@ -240,6 +248,8 @@
         <button class="fab" id="fab-add-event" title="Create Event">
           <i class="fa-solid fa-plus"></i>
         </button>
+        <!-- Blank spacer to prevent any content from being cut off by the absolute bottom nav -->
+        <div class="screen-spacer" style="height: 100px; width: 100%; flex-shrink: 0;"></div>
       </div>
 
       <!-- ============================================== -->
@@ -270,6 +280,8 @@
         <div class="cards-list" id="subscription-list-container">
           <!-- Rendered dynamically in app.js -->
         </div>
+        <!-- Blank spacer to prevent any content from being cut off by the absolute bottom nav -->
+        <div class="screen-spacer" style="height: 100px; width: 100%; flex-shrink: 0;"></div>
       </div>
 
       <!-- ============================================== -->

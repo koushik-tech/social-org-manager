@@ -628,10 +628,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Compiled Common Gallery (Dashboard) ---
   let commonGalleryItems = []; // Flat list of images loaded dynamically
+  let activeLightboxItems = []; // Dynamic list of images currently loaded in the lightbox
   let currentLightboxIndex = 0; // State variable for bidirectional traversal
 
   const renderCommonGallery = async () => {
     const galleryContainer = document.getElementById('common-gallery-container');
+    const btnPrevSlider = document.getElementById('gallery-slider-prev');
+    const btnNextSlider = document.getElementById('gallery-slider-next');
     if (!galleryContainer) return;
 
     try {
@@ -653,6 +656,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (commonGalleryItems.length === 0) {
+        if (btnPrevSlider) btnPrevSlider.style.display = 'none';
+        if (btnNextSlider) btnNextSlider.style.display = 'none';
         galleryContainer.innerHTML = `
           <div style="text-align: center; color: var(--text-muted); padding: 24px 10px; border: 1px dashed var(--border); border-radius: var(--radius-md); width:100%;">
             <i class="fa-solid fa-images" style="font-size: 1.8rem; margin-bottom: 8px;"></i>
@@ -661,6 +666,9 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         return;
       }
+
+      if (btnPrevSlider) btnPrevSlider.style.display = 'flex';
+      if (btnNextSlider) btnNextSlider.style.display = 'flex';
 
       commonGalleryItems.forEach((item, index) => {
         compiledHTML += `
@@ -681,9 +689,21 @@ document.addEventListener('DOMContentLoaded', () => {
       cards.forEach(card => {
         card.addEventListener('click', () => {
           const index = parseInt(card.getAttribute('data-index'));
-          openLightbox(index);
+          openLightbox(index, commonGalleryItems);
         });
       });
+
+      // Bind horizontal slider buttons scroll triggers
+      if (btnPrevSlider) {
+        btnPrevSlider.onclick = () => {
+          galleryContainer.scrollBy({ left: -240, behavior: 'smooth' });
+        };
+      }
+      if (btnNextSlider) {
+        btnNextSlider.onclick = () => {
+          galleryContainer.scrollBy({ left: 240, behavior: 'smooth' });
+        };
+      }
 
     } catch (err) {
       console.error('Error rendering common gallery:', err);
@@ -699,21 +719,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const lightboxPrev = document.getElementById('lightbox-prev');
   const lightboxNext = document.getElementById('lightbox-next');
 
-  const openLightbox = (index) => {
-    if (!lightboxOverlay || commonGalleryItems.length === 0) return;
+  const openLightbox = (index, itemsArray = commonGalleryItems) => {
+    if (!lightboxOverlay || itemsArray.length === 0) return;
     
+    activeLightboxItems = itemsArray;
+
     // Boundary checks for cyclic navigation
     if (index < 0) {
-      index = commonGalleryItems.length - 1;
-    } else if (index >= commonGalleryItems.length) {
+      index = activeLightboxItems.length - 1;
+    } else if (index >= activeLightboxItems.length) {
       index = 0;
     }
 
     currentLightboxIndex = index;
-    const item = commonGalleryItems[index];
+    const item = activeLightboxItems[index];
 
     lightboxImg.src = item.url;
-    lightboxCaption.innerText = `${item.title} (${item.deptName} Wing)`;
+    lightboxCaption.innerText = item.deptName 
+      ? `${item.title} (${item.deptName} Wing)` 
+      : item.title;
     lightboxOverlay.classList.add('active');
   };
 
@@ -733,14 +757,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (lightboxPrev) {
     lightboxPrev.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent modal dismiss
-      openLightbox(currentLightboxIndex - 1);
+      openLightbox(currentLightboxIndex - 1, activeLightboxItems);
     });
   }
 
   if (lightboxNext) {
     lightboxNext.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent modal dismiss
-      openLightbox(currentLightboxIndex + 1);
+      openLightbox(currentLightboxIndex + 1, activeLightboxItems);
     });
   }
 
@@ -755,9 +779,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!lightboxOverlay || !lightboxOverlay.classList.contains('active')) return;
     
     if (e.key === 'ArrowLeft') {
-      openLightbox(currentLightboxIndex - 1);
+      openLightbox(currentLightboxIndex - 1, activeLightboxItems);
     } else if (e.key === 'ArrowRight') {
-      openLightbox(currentLightboxIndex + 1);
+      openLightbox(currentLightboxIndex + 1, activeLightboxItems);
     } else if (e.key === 'Escape') {
       closeLightbox();
     }
@@ -1120,6 +1144,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       openModal(`${dept.name} Details`, contentHTML, true);
+
+      // Bind click triggers to department details gallery items
+      const deptGalleryItems = modalOverlay.querySelectorAll('.dept-gallery-item');
+      deptGalleryItems.forEach((item, index) => {
+        item.addEventListener('click', () => {
+          const formattedItems = dept.gallery.map(img => ({
+            url: img.url,
+            title: img.title,
+            deptName: dept.name,
+            deptIcon: dept.icon
+          }));
+          openLightbox(index, formattedItems);
+        });
+      });
 
       // Bind dynamic modal header back button
       const headerBackBtn = modalOverlay.querySelector('.modal-back-btn');

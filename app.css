@@ -1920,6 +1920,50 @@ textarea.form-control {
 }
 
 /* --- Compiled Common Gallery (Dashboard) --- */
+.common-gallery-slider-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.gallery-slider-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-bounce);
+}
+
+.gallery-slider-btn:hover {
+  background: var(--primary-light);
+  transform: translateY(-50%) scale(1.1);
+  color: var(--primary-dark);
+}
+
+.gallery-slider-btn:active {
+  transform: translateY(-50%) scale(0.92);
+}
+
+.slider-prev {
+  left: -8px;
+}
+
+.slider-next {
+  right: -8px;
+}
+
 .common-gallery-container {
   display: flex;
   flex-direction: row;
