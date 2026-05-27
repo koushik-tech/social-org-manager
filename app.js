@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
       switchScreen('screen-dashboard');
       loadDashboardStats();
       updateCloudStatusUI();
+      renderCommonGallery();
     } else {
       bottomNav.style.display = 'none';
       switchScreen('screen-login');
@@ -257,14 +258,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. SHEET MODAL CONTROLLER
   // ==============================================
 
-  const openModal = (title, contentHTML) => {
+  const openModal = (title, contentHTML, showBackButton = false) => {
     modalTitle.innerText = title;
     modalBody.innerHTML = contentHTML;
+    
+    // Manage dynamic back button in modal header
+    let backBtn = modalOverlay.querySelector('.modal-back-btn');
+    if (showBackButton) {
+      if (!backBtn) {
+        backBtn = document.createElement('button');
+        backBtn.className = 'modal-back-btn';
+        backBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
+        backBtn.title = 'Go Back';
+        modalTitle.parentNode.insertBefore(backBtn, modalTitle);
+      }
+      backBtn.style.display = 'flex';
+    } else {
+      if (backBtn) backBtn.style.display = 'none';
+    }
+    
     modalOverlay.classList.add('active');
   };
 
   const closeModal = () => {
     modalOverlay.classList.remove('active');
+    
+    // Hide back button on close to avoid flashing on next modal open
+    const backBtn = modalOverlay.querySelector('.modal-back-btn');
+    if (backBtn) backBtn.style.display = 'none';
+
     // Clear dynamic bindings inside modal to prevent leaks
     setTimeout(() => {
       modalBody.innerHTML = '';
@@ -557,6 +579,133 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Expose globally for login page inline onclick trigger
   window.openCloudSyncModal = openCloudSyncModal;
+
+  // --- HTML5 Canvas Image Compression Utility ---
+  const compressAndLoadImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 500;
+          const MAX_HEIGHT = 375;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG with 0.7 quality
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(dataUrl);
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
+  // --- Compiled Common Gallery (Dashboard) ---
+  const renderCommonGallery = async () => {
+    const galleryContainer = document.getElementById('common-gallery-container');
+    if (!galleryContainer) return;
+
+    try {
+      const depts = await window.ApiService.getDepartments();
+      let compiledHTML = '';
+      
+      depts.forEach(dept => {
+        if (dept.gallery && Array.isArray(dept.gallery)) {
+          dept.gallery.forEach(img => {
+            compiledHTML += `
+              <div class="common-gallery-card" data-img-url="${img.url}" data-img-title="${img.title}" data-dept-name="${dept.name}">
+                <img class="common-gallery-img" src="${img.url}" alt="${img.title}" loading="lazy">
+                <span class="common-gallery-badge">${dept.icon} ${dept.name}</span>
+                <div class="common-gallery-info">
+                  <h4 class="common-gallery-title">${img.title}</h4>
+                </div>
+              </div>
+            `;
+          });
+        }
+      });
+
+      if (!compiledHTML) {
+        galleryContainer.innerHTML = `
+          <div style="grid-column: span 2; text-align: center; color: var(--text-muted); padding: 24px 10px; border: 1px dashed var(--border); border-radius: var(--radius-md); width:100%;">
+            <i class="fa-solid fa-images" style="font-size: 1.8rem; margin-bottom: 8px;"></i>
+            <p style="font-size: 0.8rem; margin:0;">No photos in the gallery yet.</p>
+          </div>
+        `;
+        return;
+      }
+
+      galleryContainer.innerHTML = compiledHTML;
+
+      // Bind zoom lightbox click triggers
+      const cards = galleryContainer.querySelectorAll('.common-gallery-card');
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          const url = card.getAttribute('data-img-url');
+          const title = card.getAttribute('data-img-title');
+          const deptName = card.getAttribute('data-dept-name');
+          openLightbox(url, `${title} (${deptName} Wing)`);
+        });
+      });
+
+    } catch (err) {
+      console.error('Error rendering common gallery:', err);
+      galleryContainer.innerHTML = `<p style="grid-column: span 2; text-align:center; font-size:0.8rem; color:var(--error);">Failed to load gallery.</p>`;
+    }
+  };
+
+  // --- Lightbox Overlay Zoom ---
+  const lightboxOverlay = document.getElementById('lightbox-overlay');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxCaption = document.getElementById('lightbox-caption');
+  const lightboxClose = document.getElementById('lightbox-close');
+
+  const openLightbox = (url, caption) => {
+    if (!lightboxOverlay) return;
+    lightboxImg.src = url;
+    lightboxCaption.innerText = caption;
+    lightboxOverlay.classList.add('active');
+  };
+
+  const closeLightbox = () => {
+    if (!lightboxOverlay) return;
+    lightboxOverlay.classList.remove('active');
+    setTimeout(() => {
+      lightboxImg.src = '';
+      lightboxCaption.innerText = '';
+    }, 300);
+  };
+
+  if (lightboxClose) {
+    lightboxClose.addEventListener('click', closeLightbox);
+  }
+  if (lightboxOverlay) {
+    lightboxOverlay.addEventListener('click', (e) => {
+      if (e.target === lightboxOverlay) closeLightbox();
+    });
+  }
 
   // ==============================================
   // 5. NAVIGATION BINDINGS
@@ -887,7 +1036,20 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       }
 
-      openModal(`${dept.name} Details`, contentHTML);
+      openModal(`${dept.name} Details`, contentHTML, true);
+
+      // Bind dynamic modal header back button
+      const headerBackBtn = modalOverlay.querySelector('.modal-back-btn');
+      if (headerBackBtn) {
+        const newHeaderBackBtn = headerBackBtn.cloneNode(true);
+        headerBackBtn.parentNode.replaceChild(newHeaderBackBtn, headerBackBtn);
+        newHeaderBackBtn.addEventListener('click', () => {
+          closeModal();
+          setTimeout(() => {
+            openDepartmentsModal();
+          }, 320);
+        });
+      }
 
       document.getElementById('btn-back-to-tree').addEventListener('click', () => {
         closeModal();
@@ -933,6 +1095,163 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // Maintain dynamic local array copy of the gallery photos
+      let currentGallery = [...dept.gallery];
+
+      // Reusable HTML compiler for dynamic gallery editing
+      const renderGalleryEditorHTML = () => {
+        let itemsHTML = '';
+        currentGallery.forEach((img, idx) => {
+          itemsHTML += `
+            <div class="form-gallery-item" data-idx="${idx}">
+              <img src="${img.url}" alt="${img.title}">
+              <button type="button" class="btn-remove-gallery-item" data-idx="${idx}" title="Remove photo">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+              <div class="form-gallery-caption-overlay">${img.title}</div>
+            </div>
+          `;
+        });
+
+        return `
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label style="margin-bottom:6px; display:block;">Department Gallery Photos</label>
+            <div class="form-gallery-grid" id="form-gallery-grid-items">
+              ${itemsHTML || '<div style="grid-column: span 3; text-align: center; color: var(--text-muted); padding: 16px 10px; border: 1px dashed var(--border); border-radius: var(--radius-sm); font-size: 0.8rem; background-color: var(--background);">No photos inside this wing.</div>'}
+            </div>
+            
+            <div class="form-file-upload-card" id="form-file-uploader-trigger">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span>Browse Device Photo</span>
+              <p>PNG, JPG up to 5MB (auto-compressed)</p>
+              <input type="file" id="form-file-uploader-input" accept="image/*" style="display:none;">
+            </div>
+            
+            <div id="form-file-uploader-status" style="display:none; margin-bottom: 12px; font-size:0.8rem; background-color: var(--background); border:1px solid var(--border); border-radius: var(--radius-sm); padding:10px; text-align:left;">
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label for="form-new-photo-caption" style="font-size:0.75rem; margin-bottom:4px; font-weight:700; color:var(--text-muted);">Photo Caption</label>
+                <input type="text" id="form-new-photo-caption" class="form-control" placeholder="E.g. Annual General Meeting" style="padding: 8px 10px; font-size: 0.85rem;">
+              </div>
+              <button type="button" class="btn btn-primary" id="btn-add-uploaded-photo" style="padding: 8px 12px; font-size:0.8rem; width:100%;">
+                <i class="fa-solid fa-plus"></i> Append to Wing Gallery
+              </button>
+            </div>
+          </div>
+        `;
+      };
+
+      // Handler to bind interactive upload event listeners dynamically
+      const bindGalleryEvents = () => {
+        const gridContainer = document.getElementById('form-gallery-grid-items');
+        const uploadTrigger = document.getElementById('form-file-uploader-trigger');
+        const uploadInput = document.getElementById('form-file-uploader-input');
+        const uploadStatus = document.getElementById('form-file-uploader-status');
+        const newCaptionInput = document.getElementById('form-new-photo-caption');
+        const btnAddPhoto = document.getElementById('btn-add-uploaded-photo');
+        
+        let loadedBase64 = '';
+
+        // Deletion clicks
+        if (gridContainer) {
+          const deleteBtns = gridContainer.querySelectorAll('.btn-remove-gallery-item');
+          deleteBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const idx = parseInt(btn.getAttribute('data-idx'));
+              currentGallery.splice(idx, 1);
+              refreshGalleryUI();
+            });
+          });
+        }
+
+        // Picker click trigger
+        if (uploadTrigger && uploadInput) {
+          uploadTrigger.addEventListener('click', () => {
+            uploadInput.click();
+          });
+        }
+
+        // File compression trigger on change
+        if (uploadInput) {
+          uploadInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showLoader('Compressing photo...');
+            try {
+              loadedBase64 = await compressAndLoadImage(file);
+              hideLoader();
+              uploadStatus.style.display = 'block';
+              
+              // Preset caption with filename
+              newCaptionInput.value = file.name.split('.')[0] || 'Gallery Photo';
+              newCaptionInput.focus();
+              showToast('Photo compressed successfully!', 'success');
+            } catch (err) {
+              hideLoader();
+              showToast('Failed to load image: ' + err.message, 'error');
+            }
+          });
+        }
+
+        // Save uploaded photo to current list
+        if (btnAddPhoto) {
+          btnAddPhoto.addEventListener('click', () => {
+            const caption = newCaptionInput.value.trim();
+            if (!caption) {
+              showToast('Please enter a caption for the photo.', 'error');
+              return;
+            }
+            if (!loadedBase64) {
+              showToast('No image loaded.', 'error');
+              return;
+            }
+
+            currentGallery.push({
+              title: caption,
+              url: loadedBase64
+            });
+
+            uploadStatus.style.display = 'none';
+            uploadInput.value = '';
+            loadedBase64 = '';
+            refreshGalleryUI();
+            showToast('Photo added to list!', 'success');
+          });
+        }
+      };
+
+      const refreshGalleryUI = () => {
+        const gridItems = document.getElementById('form-gallery-grid-items');
+        if (!gridItems) return;
+        
+        let itemsHTML = '';
+        currentGallery.forEach((img, idx) => {
+          itemsHTML += `
+            <div class="form-gallery-item" data-idx="${idx}">
+              <img src="${img.url}" alt="${img.title}">
+              <button type="button" class="btn-remove-gallery-item" data-idx="${idx}" title="Remove photo">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+              <div class="form-gallery-caption-overlay">${img.title}</div>
+            </div>
+          `;
+        });
+
+        gridItems.innerHTML = itemsHTML || '<div style="grid-column: span 3; text-align: center; color: var(--text-muted); padding: 16px 10px; border: 1px dashed var(--border); border-radius: var(--radius-sm); font-size: 0.8rem; background-color: var(--background);">No photos inside this wing.</div>';
+        
+        // Re-bind delete listeners
+        const deleteBtns = gridItems.querySelectorAll('.btn-remove-gallery-item');
+        deleteBtns.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.getAttribute('data-idx'));
+            currentGallery.splice(idx, 1);
+            refreshGalleryUI();
+          });
+        });
+      };
+
       let formHTML = '';
 
       if (deptId === 'general') {
@@ -962,21 +1281,6 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
         });
 
-        let galleryInputs = '';
-        dept.gallery.forEach((img, idx) => {
-          galleryInputs += `
-            <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px; background: white;">
-              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Gallery Image #${idx + 1}</div>
-              <div class="form-group" style="margin-bottom: 6px;">
-                <input type="text" id="edit-gallery-title-${idx}" class="form-control" placeholder="Caption/Title" required value="${img.title}" style="padding: 8px 12px; font-size: 0.85rem;">
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <input type="url" id="edit-gallery-url-${idx}" class="form-control" placeholder="Unsplash Image URL" required value="${img.url}" style="padding: 8px 12px; font-size: 0.85rem;">
-              </div>
-            </div>
-          `;
-        });
-
         formHTML = `
           <div class="form-view" style="padding-bottom: 20px;">
             <form id="dept-edit-form-general">
@@ -986,8 +1290,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-people-group"></i> Sub-Committee</div>
               ${subInputs}
 
-              <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-images"></i> Gallery Images</div>
-              ${galleryInputs}
+              <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-images"></i> Dynamic Photo Gallery</div>
+              ${renderGalleryEditorHTML()}
 
               <div class="modal-footer-btns" style="margin-top: 20px;">
                 <button type="button" class="btn btn-secondary" id="btn-cancel-edit-dept" style="width: 48%;"><i class="fa-solid fa-xmark"></i> Cancel</button>
@@ -997,21 +1301,6 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         `;
       } else {
-        let galleryInputs = '';
-        dept.gallery.forEach((img, idx) => {
-          galleryInputs += `
-            <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px; background: white;">
-              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">Gallery Image #${idx + 1}</div>
-              <div class="form-group" style="margin-bottom: 6px;">
-                <input type="text" id="edit-gallery-title-${idx}" class="form-control" placeholder="Caption/Title" required value="${img.title}" style="padding: 8px 12px; font-size: 0.85rem;">
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <input type="url" id="edit-gallery-url-${idx}" class="form-control" placeholder="Unsplash Image URL" required value="${img.url}" style="padding: 8px 12px; font-size: 0.85rem;">
-              </div>
-            </div>
-          `;
-        });
-
         formHTML = `
           <div class="form-view" style="padding-bottom: 20px;">
             <form id="dept-edit-form-non-general">
@@ -1055,8 +1344,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
               </div>
 
-              <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-images"></i> Gallery Images</div>
-              ${galleryInputs}
+              <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-images"></i> Dynamic Photo Gallery</div>
+              ${renderGalleryEditorHTML()}
 
               <div class="modal-footer-btns" style="margin-top: 20px;">
                 <button type="button" class="btn btn-secondary" id="btn-cancel-edit-dept" style="width: 48%;"><i class="fa-solid fa-xmark"></i> Cancel</button>
@@ -1067,7 +1356,23 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       }
 
-      openModal(`Edit ${dept.name} Wing`, formHTML);
+      openModal(`Edit ${dept.name} Wing`, formHTML, true);
+
+      // Bind dynamic modal header back button
+      const headerBackBtn = modalOverlay.querySelector('.modal-back-btn');
+      if (headerBackBtn) {
+        const newHeaderBackBtn = headerBackBtn.cloneNode(true);
+        headerBackBtn.parentNode.replaceChild(newHeaderBackBtn, headerBackBtn);
+        newHeaderBackBtn.addEventListener('click', () => {
+          closeModal();
+          setTimeout(() => {
+            openDepartmentDetailsModal(deptId);
+          }, 320);
+        });
+      }
+      
+      // Bind gallery drag/drop and delete handles
+      bindGalleryEvents();
 
       document.getElementById('btn-cancel-edit-dept').addEventListener('click', () => {
         closeModal();
@@ -1097,25 +1402,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           }
 
-          const newGallery = [];
-          for (let i = 0; i < dept.gallery.length; i++) {
-            newGallery.push({
-              title: document.getElementById(`edit-gallery-title-${i}`).value.trim(),
-              url: document.getElementById(`edit-gallery-url-${i}`).value.trim()
-            });
-          }
-
           showLoader('Updating wing details...');
           try {
             await window.ApiService.updateDepartment(deptId, {
               executiveCommittee: newExec,
               subCommittee: newSub,
-              gallery: newGallery
+              gallery: currentGallery
             });
 
             hideLoader();
             showToast('Wing details updated successfully!', 'success');
             closeModal();
+            
+            // Refresh dashboard common gallery immediately
+            renderCommonGallery();
+            
             setTimeout(() => {
               openDepartmentDetailsModal(deptId);
             }, 320);
@@ -1142,14 +1443,6 @@ document.addEventListener('DOMContentLoaded', () => {
             phone: document.getElementById('edit-dept-poc-phone').value.trim()
           };
 
-          const newGallery = [];
-          for (let i = 0; i < dept.gallery.length; i++) {
-            newGallery.push({
-              title: document.getElementById(`edit-gallery-title-${i}`).value.trim(),
-              url: document.getElementById(`edit-gallery-url-${i}`).value.trim()
-            });
-          }
-
           showLoader('Updating wing details...');
           try {
             await window.ApiService.updateDepartment(deptId, {
@@ -1158,12 +1451,16 @@ document.addEventListener('DOMContentLoaded', () => {
               admissionFees: admFeesVal,
               monthlyFees: monFeesVal,
               poc: pocVal,
-              gallery: newGallery
+              gallery: currentGallery
             });
 
             hideLoader();
             showToast('Wing details updated successfully!', 'success');
             closeModal();
+            
+            // Refresh dashboard common gallery immediately
+            renderCommonGallery();
+            
             setTimeout(() => {
               openDepartmentDetailsModal(deptId);
             }, 320);
