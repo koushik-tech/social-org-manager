@@ -190,6 +190,8 @@ const SEED_PERSONS = [
     departments: ['cultural-art-school', 'cultural-recitation'],
     address: '12B, Lake Road, Ballygunge, Kolkata - 700029',
     subscriptionClearedUpto: '2026-08',
+    lastSubPaidOn: '2026-05-12',
+    lastSubBillNo: 'BILL-2026-101',
     createdAt: new Date().toISOString()
   },
   {
@@ -201,6 +203,8 @@ const SEED_PERSONS = [
     departments: ['sports-pranayam', 'social-service-dispensary'],
     address: 'FD-184, Salt Lake City, Sector 3, Kolkata - 700091',
     subscriptionClearedUpto: '2026-04',
+    lastSubPaidOn: '2026-04-05',
+    lastSubBillNo: 'BILL-2026-095',
     createdAt: new Date().toISOString()
   },
   {
@@ -212,6 +216,8 @@ const SEED_PERSONS = [
     departments: ['sports-mohila-yogasana', 'sports-pranayam', 'social-service-dispensary'],
     address: '45, Jodhpur Park, Kolkata - 700068',
     subscriptionClearedUpto: '2026-06',
+    lastSubPaidOn: '2026-05-20',
+    lastSubBillNo: 'BILL-2026-112',
     createdAt: new Date().toISOString()
   },
   {
@@ -223,6 +229,8 @@ const SEED_PERSONS = [
     departments: ['cultural-art-school', 'sports-park'],
     address: 'Flat 4A, Green Heights, Behala, Kolkata - 700034',
     subscriptionClearedUpto: '2026-03',
+    lastSubPaidOn: '2026-03-01',
+    lastSubBillNo: 'BILL-2026-084',
     createdAt: new Date().toISOString()
   },
   {
@@ -234,6 +242,8 @@ const SEED_PERSONS = [
     departments: ['cultural-ghungur'],
     address: '32/1, Prince Anwar Shah Road, Jadavpur, Kolkata - 700032',
     subscriptionClearedUpto: '2026-07',
+    lastSubPaidOn: '2026-05-15',
+    lastSubBillNo: 'BILL-2026-105',
     createdAt: new Date().toISOString()
   },
   {
@@ -245,6 +255,8 @@ const SEED_PERSONS = [
     departments: ['general', 'social-service-dispensary'],
     address: '8B, Shyambazar Street, Hatibagan, Kolkata - 700004',
     subscriptionClearedUpto: '2026-05',
+    lastSubPaidOn: '2026-05-02',
+    lastSubBillNo: 'BILL-2026-098',
     createdAt: new Date().toISOString()
   }
 ];

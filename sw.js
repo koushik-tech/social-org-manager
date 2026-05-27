@@ -1,4 +1,4 @@
-const CACHE_NAME = 'social-org-cache-v5';
+const CACHE_NAME = 'social-org-cache-v6';
 const ASSETS = [
   './',
   './index.html',

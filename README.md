@@ -95,6 +95,8 @@ You can easily synchronize your application's data across multiple devices (PCs,
        email TEXT,
        departments JSONB NOT NULL DEFAULT '[]'::jsonb,
        "subscriptionClearedUpto" TEXT,
+       "lastSubPaidOn" TEXT,
+       "lastSubBillNo" TEXT,
        address TEXT,
        "createdAt" TEXT NOT NULL
    );

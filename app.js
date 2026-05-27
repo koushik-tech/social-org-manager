@@ -2268,6 +2268,22 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             </div>
 
+            <div style="margin-top: 10px;">
+              <div class="detail-item-title">Last Subscription Paid On</div>
+              <div class="detail-item-value">
+                <i class="fa-solid fa-calendar-day" style="color:var(--text-muted);"></i>
+                <span>${person.lastSubPaidOn || 'Not recorded'}</span>
+              </div>
+            </div>
+
+            <div style="margin-top: 10px;">
+              <div class="detail-item-title">Last Subscription Bill No.</div>
+              <div class="detail-item-value">
+                <i class="fa-solid fa-file-invoice" style="color:var(--text-muted);"></i>
+                <span>${person.lastSubBillNo || 'Not recorded'}</span>
+              </div>
+            </div>
+
             <div>
               <div class="detail-item-title">Phone Contact</div>
               <div class="detail-item-value">
@@ -2470,6 +2486,22 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <div class="form-group">
+              <label for="form-person-last-paid-on">Last Subscription Paid On (Date)</label>
+              <div class="input-container">
+                <i class="fa-solid fa-calendar-day"></i>
+                <input type="date" id="form-person-last-paid-on" class="form-control" style="padding-left:44px;" value="${isEditMode ? (personToEdit.lastSubPaidOn || '') : ''}" ${disabledAttr}>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="form-person-last-bill-no">Last Subscription Bill No.</label>
+              <div class="input-container">
+                <i class="fa-solid fa-file-invoice"></i>
+                <input type="text" id="form-person-last-bill-no" class="form-control" style="padding-left:44px;" placeholder="E.g. BILL-2026-124" value="${isEditMode ? (personToEdit.lastSubBillNo || '') : ''}" ${disabledAttr}>
+              </div>
+            </div>
+
+            <div class="form-group">
               <label for="form-person-address">Home Address</label>
               <textarea id="form-person-address" class="form-control" placeholder="Enter complete address" ${disabledAttr}>${isEditMode ? personToEdit.address : ''}</textarea>
             </div>
@@ -2511,6 +2543,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const phoneVal = document.getElementById('form-person-phone').value.trim();
         const emailVal = document.getElementById('form-person-email').value.trim();
         const subVal = document.getElementById('form-person-sub').value || new Date().toISOString().substring(0, 7);
+        const lastPaidOnVal = document.getElementById('form-person-last-paid-on').value;
+        const lastBillNoVal = document.getElementById('form-person-last-bill-no').value.trim();
         const addressVal = document.getElementById('form-person-address').value.trim();
 
         // 2. Fetch all checked departments
@@ -2533,6 +2567,8 @@ document.addEventListener('DOMContentLoaded', () => {
           email: emailVal,
           departments: selectedDepts,
           subscriptionClearedUpto: subVal,
+          lastSubPaidOn: lastPaidOnVal,
+          lastSubBillNo: lastBillNoVal,
           address: addressVal
         };
 
