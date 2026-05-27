@@ -108,7 +108,7 @@ const AuthService = {
     const db = getUsersDB();
     const matchedUser = db[normalizedUser];
     
-    if (matchedUser && (password === matchedUser.password || (normalizedUser === 'admin' && (password === 'admin123' || password === 'password123')))) {
+    if (matchedUser && password === matchedUser.password) {
       const sessionData = {
         username: matchedUser.username,
         name: matchedUser.name,
