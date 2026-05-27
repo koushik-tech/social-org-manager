@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('login-form');
   const btnLogout = document.getElementById('btn-logout');
   const btnCloudSync = document.getElementById('btn-cloud-sync');
+  const btnCloudSyncLogin = document.getElementById('btn-cloud-sync-login');
   const toastContainer = document.getElementById('toast-container');
   const loadingOverlay = document.getElementById('loading-overlay');
   const loadingText = document.getElementById('loading-text');
@@ -313,6 +314,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnCloudSync) {
     btnCloudSync.addEventListener('click', () => {
+      openCloudSyncModal();
+    });
+  }
+
+  if (btnCloudSyncLogin) {
+    btnCloudSyncLogin.addEventListener('click', (e) => {
+      e.preventDefault();
       openCloudSyncModal();
     });
   }

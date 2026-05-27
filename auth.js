@@ -91,8 +91,15 @@ const AuthService = {
    * @returns {Promise<Object>} The user object if successful, throws error otherwise
    */
   login: async (username, password, rememberMe = false) => {
-    // Sync credentials from cloud first
-    await syncUsersFromCloud();
+    // Sync credentials from cloud first with a quick timeout fallback so it never hangs
+    try {
+      await Promise.race([
+        syncUsersFromCloud(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500))
+      ]);
+    } catch (err) {
+      console.warn('Cloud sync during login timed out or failed. Logging in offline-first using local cache.', err);
+    }
 
     // Simulate minor network delay for premium visual loading indicator
     await new Promise((resolve) => setTimeout(resolve, 600));
