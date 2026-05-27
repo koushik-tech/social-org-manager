@@ -5,6 +5,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  console.log("=== DIAGNOSTIC: Version 2.0 Active (Responsive Height Patch) ===");
   // --- UI Elements Selectors ---
   const screens = {
     login: document.getElementById('screen-login'),
