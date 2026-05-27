@@ -1176,18 +1176,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  const openUserManagementModal = () => {
+  const openUserManagementModal = async () => {
     const currentUser = window.AuthService.getCurrentUser();
     if (!currentUser || currentUser.role !== 'Admin') {
       showToast('Permission denied. Admins only.', 'error');
       return;
     }
 
-    const renderUsersListHTML = () => {
-      const users = window.AuthService.getUsers();
+    showLoader('Loading users database...');
+    let users = [];
+    try {
+      users = await window.AuthService.getUsers();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to sync users: ' + err.message, 'error');
+    }
+    hideLoader();
+
+    const renderUsersListHTML = (usersList) => {
       let usersHTML = '';
 
-      users.forEach(u => {
+      usersList.forEach(u => {
         let badgeClass = 'role-member-badge';
         if (u.role === 'Admin') badgeClass = 'role-admin-badge';
         if (u.role === 'Teacher') badgeClass = 'role-teacher-badge';
@@ -1224,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="dept-section-title" style="margin-bottom: 8px;"><i class="fa-solid fa-users-gear"></i> Active Accounts</div>
         <div class="users-list-container" id="admin-users-list-container">
-          ${renderUsersListHTML()}
+          ${renderUsersListHTML(users)}
         </div>
 
         <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 8px;"><i class="fa-solid fa-user-plus"></i> Create New User Account</div>
@@ -1281,7 +1290,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const createUserForm = document.getElementById('admin-create-user-form');
     const shareArea = document.getElementById('credentials-share-area');
 
-    createUserForm.addEventListener('submit', (e) => {
+    const refreshUsersList = async () => {
+      showLoader('Refreshing user list...');
+      try {
+        const updatedUsers = await window.AuthService.getUsers();
+        usersListContainer.innerHTML = renderUsersListHTML(updatedUsers);
+        bindDeleteHandlers();
+      } catch (err) {
+        showToast('Failed to refresh user list: ' + err.message, 'error');
+      } finally {
+        hideLoader();
+      }
+    };
+
+    createUserForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
       const nameVal = document.getElementById('new-user-name').value.trim();
@@ -1295,80 +1317,71 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       showLoader('Creating user account...');
-      
-      setTimeout(() => {
-        try {
-          window.AuthService.addUser({
-            username: usernameVal,
-            password: passwordVal,
-            name: nameVal,
-            role: roleVal
-          });
-          
-          hideLoader();
-          showToast(`Account successfully created for ${nameVal}!`, 'success');
-          
-          usersListContainer.innerHTML = renderUsersListHTML();
-          bindDeleteHandlers();
-          
-          const portalUrl = window.location.href.split('#')[0];
-          const credentialsText = `Hi ${nameVal},\n\nHere are your login credentials for Udayan360 Portal:\nPortal: ${portalUrl}\nUser ID: ${usernameVal}\nPassword: ${passwordVal}\nRole: ${roleVal}\n\nDo not share these credentials with anyone else.`;
-          
-          shareArea.innerHTML = `
-            <div class="share-credentials-box">
-              <div class="share-title">
-                <i class="fa-solid fa-circle-check"></i> Account Created Successfully!
-              </div>
-              <div class="credentials-display" id="share-creds-text">${credentialsText}</div>
-              <button class="btn btn-secondary" id="btn-copy-creds" style="width: 100%; padding: 10px; background-color: var(--success); color: white; border: none;">
-                <i class="fa-solid fa-copy"></i> Copy Credentials & Share
-              </button>
+      try {
+        await window.AuthService.addUser({
+          username: usernameVal,
+          password: passwordVal,
+          name: nameVal,
+          role: roleVal
+        });
+        
+        hideLoader();
+        showToast(`Account successfully created for ${nameVal}!`, 'success');
+        
+        await refreshUsersList();
+        
+        const portalUrl = window.location.href.split('#')[0];
+        const credentialsText = `Hi ${nameVal},\n\nHere are your login credentials for Udayan360 Portal:\nPortal: ${portalUrl}\nUser ID: ${usernameVal}\nPassword: ${passwordVal}\nRole: ${roleVal}\n\nDo not share these credentials with anyone else.`;
+        
+        shareArea.innerHTML = `
+          <div class="share-credentials-box">
+            <div class="share-title">
+              <i class="fa-solid fa-circle-check"></i> Account Created Successfully!
             </div>
-          `;
-          shareArea.style.display = 'block';
+            <div class="credentials-display" id="share-creds-text">${credentialsText}</div>
+            <button class="btn btn-secondary" id="btn-copy-creds" style="width: 100%; padding: 10px; background-color: var(--success); color: white; border: none;">
+              <i class="fa-solid fa-copy"></i> Copy Credentials & Share
+            </button>
+          </div>
+        `;
+        shareArea.style.display = 'block';
 
-          document.getElementById('btn-copy-creds').addEventListener('click', async () => {
-            try {
-              await navigator.clipboard.writeText(credentialsText);
-              showToast('Credentials copied to clipboard!', 'success');
-            } catch (err) {
-              showToast('Failed to copy to clipboard.', 'error');
-            }
-          });
+        document.getElementById('btn-copy-creds').addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(credentialsText);
+            showToast('Credentials copied to clipboard!', 'success');
+          } catch (err) {
+            showToast('Failed to copy to clipboard.', 'error');
+          }
+        });
 
-          createUserForm.reset();
-          
-        } catch (err) {
-          hideLoader();
-          showToast(err.message, 'error');
-        }
-      }, 500);
+        createUserForm.reset();
+      } catch (err) {
+        hideLoader();
+        showToast(err.message, 'error');
+      }
     });
 
     const bindDeleteHandlers = () => {
       const deleteButtons = usersListContainer.querySelectorAll('.btn-delete-user');
       deleteButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const username = btn.getAttribute('data-username');
           const confirmDelete = confirm(`Are you sure you want to delete the user account "@${username}"? The user will instantly lose all access to Udayan360.`);
           if (!confirmDelete) return;
 
           showLoader('Deleting user account...');
-          setTimeout(() => {
-            try {
-              window.AuthService.deleteUser(username);
-              hideLoader();
-              showToast(`Account "@${username}" deleted successfully.`, 'success');
-              
-              usersListContainer.innerHTML = renderUsersListHTML();
-              bindDeleteHandlers();
-              
-              shareArea.style.display = 'none';
-            } catch (err) {
-              hideLoader();
-              showToast(err.message, 'error');
-            }
-          }, 400);
+          try {
+            await window.AuthService.deleteUser(username);
+            hideLoader();
+            showToast(`Account "@${username}" deleted successfully.`, 'success');
+            
+            await refreshUsersList();
+            shareArea.style.display = 'none';
+          } catch (err) {
+            hideLoader();
+            showToast(err.message, 'error');
+          }
         });
       });
     };

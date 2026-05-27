@@ -881,6 +881,17 @@ const ApiService = {
             .upsert(localDepts, { onConflict: 'id' });
           if (error) throw error;
         }
+
+        // Bulk Upload Dynamic User Accounts
+        if (window.AuthService) {
+          const localUsers = await window.AuthService.getUsers();
+          if (localUsers.length > 0) {
+            const { error } = await supabaseClientInstance
+              .from('users_accounts')
+              .upsert(localUsers, { onConflict: 'username' });
+            if (error) throw error;
+          }
+        }
       } catch (err) {
         throw new Error('Supabase upload failed: ' + err.message);
       }
@@ -902,6 +913,14 @@ const ApiService = {
           const docRef = firebaseDbInstance.collection('departments').doc(dept.id);
           batch.set(docRef, dept, { merge: true });
         });
+
+        if (window.AuthService) {
+          const localUsers = await window.AuthService.getUsers();
+          localUsers.forEach(u => {
+            const docRef = firebaseDbInstance.collection('users_accounts').doc(u.username.toLowerCase());
+            batch.set(docRef, u, { merge: true });
+          });
+        }
         
         await batch.commit();
       } catch (err) {
@@ -935,6 +954,11 @@ const ApiService = {
           .from('departments')
           .select('*');
         if (dError) throw dError;
+
+        const { data: users, error: uError } = await supabaseClientInstance
+          .from('users_accounts')
+          .select('*');
+        if (uError) throw uError;
         
         setStorageData(STORAGE_KEYS.PERSONS, persons || []);
         setStorageData(STORAGE_KEYS.EVENTS, events || []);
@@ -947,6 +971,14 @@ const ApiService = {
           subCommittee: typeof d.subCommittee === 'string' ? JSON.parse(d.subCommittee) : d.subCommittee
         })) : [];
         setStorageData(STORAGE_KEYS.DEPARTMENTS, parsedDepts);
+
+        if (users && users.length > 0) {
+          const uDb = {};
+          users.forEach(u => {
+            uDb[u.username.toLowerCase()] = u;
+          });
+          localStorage.setItem('social_org_users_database', JSON.stringify(uDb));
+        }
       } catch (err) {
         throw new Error('Supabase download failed: ' + err.message);
       }
@@ -969,10 +1001,21 @@ const ApiService = {
         deptsSnap.forEach(doc => {
           depts.push(doc.data());
         });
+
+        const usersSnap = await firebaseDbInstance.collection('users_accounts').get();
+        const uDb = {};
+        usersSnap.forEach(doc => {
+          const u = doc.data();
+          uDb[u.username.toLowerCase()] = u;
+        });
         
         setStorageData(STORAGE_KEYS.PERSONS, persons);
         setStorageData(STORAGE_KEYS.EVENTS, events);
         setStorageData(STORAGE_KEYS.DEPARTMENTS, depts);
+
+        if (Object.keys(uDb).length > 0) {
+          localStorage.setItem('social_org_users_database', JSON.stringify(uDb));
+        }
       } catch (err) {
         throw new Error('Firebase download failed: ' + err.message);
       }
@@ -987,6 +1030,17 @@ const ApiService = {
     return {
       provider: activeCloudProvider,
       isConnected: activeCloudProvider !== 'none' && (supabaseClientInstance !== null || firebaseDbInstance !== null)
+    };
+  },
+
+  /**
+   * Return current database instances for external modular sync
+   */
+  getCloudInstances: () => {
+    return {
+      provider: activeCloudProvider,
+      supabase: supabaseClientInstance,
+      firebase: firebaseDbInstance
     };
   },
 

@@ -92,7 +92,7 @@ You can easily synchronize your application's data across multiple devices (PCs,
        name TEXT NOT NULL,
        category TEXT NOT NULL,
        phone TEXT NOT NULL,
-       email TEXT NOT NULL,
+       email TEXT,
        departments JSONB NOT NULL DEFAULT '[]'::jsonb,
        "subscriptionClearedUpto" TEXT,
        address TEXT,
@@ -109,9 +109,35 @@ You can easily synchronize your application's data across multiple devices (PCs,
        "createdAt" TEXT NOT NULL
    );
 
-   -- 3. Enable Public Access Rules for anonymous read/write operations
+   -- 3. Create Departments table
+   CREATE TABLE departments (
+       id TEXT PRIMARY KEY,
+       name TEXT NOT NULL,
+       category TEXT NOT NULL,
+       icon TEXT NOT NULL,
+       about TEXT,
+       timings TEXT,
+       "admissionFees" TEXT,
+       "monthlyFees" TEXT,
+       poc JSONB,
+       gallery JSONB NOT NULL DEFAULT '[]'::jsonb,
+       "executiveCommittee" JSONB NOT NULL DEFAULT '[]'::jsonb,
+       "subCommittee" JSONB NOT NULL DEFAULT '[]'::jsonb
+   );
+
+   -- 4. Create User Accounts table
+   CREATE TABLE users_accounts (
+       username TEXT PRIMARY KEY,
+       password TEXT NOT NULL,
+       name TEXT NOT NULL,
+       role TEXT NOT NULL
+   );
+
+   -- 5. Enable Public Access Rules for anonymous read/write operations
    ALTER TABLE persons ENABLE ROW LEVEL SECURITY;
    ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+   ALTER TABLE departments ENABLE ROW LEVEL SECURITY;
+   ALTER TABLE users_accounts ENABLE ROW LEVEL SECURITY;
 
    CREATE POLICY "Allow anon select" ON persons FOR SELECT USING (true);
    CREATE POLICY "Allow anon insert" ON persons FOR INSERT WITH CHECK (true);
@@ -122,6 +148,16 @@ You can easily synchronize your application's data across multiple devices (PCs,
    CREATE POLICY "Allow anon insert" ON events FOR INSERT WITH CHECK (true);
    CREATE POLICY "Allow anon update" ON events FOR UPDATE USING (true) WITH CHECK (true);
    CREATE POLICY "Allow anon delete" ON events FOR DELETE USING (true);
+
+   CREATE POLICY "Allow anon select" ON departments FOR SELECT USING (true);
+   CREATE POLICY "Allow anon insert" ON departments FOR INSERT WITH CHECK (true);
+   CREATE POLICY "Allow anon update" ON departments FOR UPDATE USING (true) WITH CHECK (true);
+   CREATE POLICY "Allow anon delete" ON departments FOR DELETE USING (true);
+
+   CREATE POLICY "Allow anon select" ON users_accounts FOR SELECT USING (true);
+   CREATE POLICY "Allow anon insert" ON users_accounts FOR INSERT WITH CHECK (true);
+   CREATE POLICY "Allow anon update" ON users_accounts FOR UPDATE USING (true) WITH CHECK (true);
+   CREATE POLICY "Allow anon delete" ON users_accounts FOR DELETE USING (true);
    ```
 
 4. Go to **Project Settings > API** in Supabase and copy your **Project URL** and **Anon Key**.
