@@ -1920,25 +1920,35 @@ textarea.form-control {
 
 /* --- Compiled Common Gallery (Dashboard) --- */
 .common-gallery-container {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 4px 0;
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  gap: 16px;
+  padding: 12px 4px;
   margin-bottom: 24px;
+  scroll-behavior: smooth;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.common-gallery-container::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .common-gallery-card {
   position: relative;
-  background-color: var(--surface);
+  background-color: #0f172a; /* Slate-900 premium dark background */
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: var(--transition-bounce);
-  aspect-ratio: 4/3;
+  width: 240px;
+  height: 180px;
   display: flex;
   flex-direction: column;
+  flex: 0 0 240px; /* Don't grow, don't shrink, set base width of 240px */
 }
 
 .common-gallery-card:hover {
@@ -1949,7 +1959,7 @@ textarea.form-control {
 .common-gallery-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain; /* Renders the full image without cropping/truncation! */
   transition: var(--transition-smooth);
 }
 
@@ -2055,6 +2065,65 @@ textarea.form-control {
   font-family: 'Outfit', sans-serif;
   text-align: center;
   max-width: 80%;
+}
+
+/* Glassmorphic Lightbox Navigation Buttons */
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 2.2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  user-select: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 0;
+}
+
+.lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.8);
+  color: white;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.lightbox-nav:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.lightbox-prev {
+  left: 28px;
+}
+
+.lightbox-next {
+  right: 28px;
+}
+
+@media (max-width: 768px) {
+  .lightbox-nav {
+    width: 46px;
+    height: 46px;
+    font-size: 1.8rem;
+  }
+  .lightbox-prev {
+    left: 12px;
+  }
+  .lightbox-next {
+    right: 12px;
+  }
 }
 
 /* --- Form Gallery Drag/Edit Layout --- */

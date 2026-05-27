@@ -536,6 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         updateCloudStatusUI();
         loadDashboardStats();
+        renderCommonGallery();
       } catch (err) {
         hideLoader();
         showToast(err.message, 'error');
@@ -553,6 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hideLoader();
         showToast('Local database successfully synchronized up!', 'success');
         loadDashboardStats();
+        renderCommonGallery();
       } catch (err) {
         hideLoader();
         showToast(err.message, 'error');
@@ -570,6 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hideLoader();
         showToast('Cloud database downloaded successfully!', 'success');
         loadDashboardStats();
+        renderCommonGallery();
       } catch (err) {
         hideLoader();
         showToast(err.message, 'error');
@@ -623,33 +626,34 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // --- Compiled Common Gallery (Dashboard) ---
+  let commonGalleryItems = []; // Flat list of images loaded dynamically
+  let currentLightboxIndex = 0; // State variable for bidirectional traversal
+
   const renderCommonGallery = async () => {
     const galleryContainer = document.getElementById('common-gallery-container');
     if (!galleryContainer) return;
 
     try {
       const depts = await window.ApiService.getDepartments();
+      commonGalleryItems = [];
       let compiledHTML = '';
       
       depts.forEach(dept => {
         if (dept.gallery && Array.isArray(dept.gallery)) {
           dept.gallery.forEach(img => {
-            compiledHTML += `
-              <div class="common-gallery-card" data-img-url="${img.url}" data-img-title="${img.title}" data-dept-name="${dept.name}">
-                <img class="common-gallery-img" src="${img.url}" alt="${img.title}" loading="lazy">
-                <span class="common-gallery-badge">${dept.icon} ${dept.name}</span>
-                <div class="common-gallery-info">
-                  <h4 class="common-gallery-title">${img.title}</h4>
-                </div>
-              </div>
-            `;
+            commonGalleryItems.push({
+              url: img.url,
+              title: img.title,
+              deptName: dept.name,
+              deptIcon: dept.icon
+            });
           });
         }
       });
 
-      if (!compiledHTML) {
+      if (commonGalleryItems.length === 0) {
         galleryContainer.innerHTML = `
-          <div style="grid-column: span 2; text-align: center; color: var(--text-muted); padding: 24px 10px; border: 1px dashed var(--border); border-radius: var(--radius-md); width:100%;">
+          <div style="text-align: center; color: var(--text-muted); padding: 24px 10px; border: 1px dashed var(--border); border-radius: var(--radius-md); width:100%;">
             <i class="fa-solid fa-images" style="font-size: 1.8rem; margin-bottom: 8px;"></i>
             <p style="font-size: 0.8rem; margin:0;">No photos in the gallery yet.</p>
           </div>
@@ -657,22 +661,32 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      commonGalleryItems.forEach((item, index) => {
+        compiledHTML += `
+          <div class="common-gallery-card" data-index="${index}">
+            <img class="common-gallery-img" src="${item.url}" alt="${item.title}" loading="lazy">
+            <span class="common-gallery-badge">${item.deptIcon} ${item.deptName}</span>
+            <div class="common-gallery-info">
+              <h4 class="common-gallery-title">${item.title}</h4>
+            </div>
+          </div>
+        `;
+      });
+
       galleryContainer.innerHTML = compiledHTML;
 
       // Bind zoom lightbox click triggers
       const cards = galleryContainer.querySelectorAll('.common-gallery-card');
       cards.forEach(card => {
         card.addEventListener('click', () => {
-          const url = card.getAttribute('data-img-url');
-          const title = card.getAttribute('data-img-title');
-          const deptName = card.getAttribute('data-dept-name');
-          openLightbox(url, `${title} (${deptName} Wing)`);
+          const index = parseInt(card.getAttribute('data-index'));
+          openLightbox(index);
         });
       });
 
     } catch (err) {
       console.error('Error rendering common gallery:', err);
-      galleryContainer.innerHTML = `<p style="grid-column: span 2; text-align:center; font-size:0.8rem; color:var(--error);">Failed to load gallery.</p>`;
+      galleryContainer.innerHTML = `<p style="text-align:center; font-size:0.8rem; color:var(--error); width:100%;">Failed to load gallery.</p>`;
     }
   };
 
@@ -681,11 +695,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const lightboxImg = document.getElementById('lightbox-img');
   const lightboxCaption = document.getElementById('lightbox-caption');
   const lightboxClose = document.getElementById('lightbox-close');
+  const lightboxPrev = document.getElementById('lightbox-prev');
+  const lightboxNext = document.getElementById('lightbox-next');
 
-  const openLightbox = (url, caption) => {
-    if (!lightboxOverlay) return;
-    lightboxImg.src = url;
-    lightboxCaption.innerText = caption;
+  const openLightbox = (index) => {
+    if (!lightboxOverlay || commonGalleryItems.length === 0) return;
+    
+    // Boundary checks for cyclic navigation
+    if (index < 0) {
+      index = commonGalleryItems.length - 1;
+    } else if (index >= commonGalleryItems.length) {
+      index = 0;
+    }
+
+    currentLightboxIndex = index;
+    const item = commonGalleryItems[index];
+
+    lightboxImg.src = item.url;
+    lightboxCaption.innerText = `${item.title} (${item.deptName} Wing)`;
     lightboxOverlay.classList.add('active');
   };
 
@@ -701,11 +728,39 @@ document.addEventListener('DOMContentLoaded', () => {
   if (lightboxClose) {
     lightboxClose.addEventListener('click', closeLightbox);
   }
+  
+  if (lightboxPrev) {
+    lightboxPrev.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent modal dismiss
+      openLightbox(currentLightboxIndex - 1);
+    });
+  }
+
+  if (lightboxNext) {
+    lightboxNext.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent modal dismiss
+      openLightbox(currentLightboxIndex + 1);
+    });
+  }
+
   if (lightboxOverlay) {
     lightboxOverlay.addEventListener('click', (e) => {
       if (e.target === lightboxOverlay) closeLightbox();
     });
   }
+
+  // Keyboard navigation support
+  document.addEventListener('keydown', (e) => {
+    if (!lightboxOverlay || !lightboxOverlay.classList.contains('active')) return;
+    
+    if (e.key === 'ArrowLeft') {
+      openLightbox(currentLightboxIndex - 1);
+    } else if (e.key === 'ArrowRight') {
+      openLightbox(currentLightboxIndex + 1);
+    } else if (e.key === 'Escape') {
+      closeLightbox();
+    }
+  });
 
   // ==============================================
   // 5. NAVIGATION BINDINGS
@@ -773,7 +828,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       // Construct interactive tree layout
-      let treeHTML = `
+      const currentUser = window.AuthService.getCurrentUser();
+      const isAdmin = currentUser && currentUser.role === 'Admin';
+      
+      let treeHTML = '';
+      if (isAdmin) {
+        treeHTML += `
+          <div class="admin-create-actions" style="margin-bottom: 20px; display: flex; justify-content: center;">
+            <button class="btn btn-primary" id="btn-create-dept-trigger" style="font-size: 0.875rem; padding: 10px 18px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-folder-plus"></i> Add New Department
+            </button>
+          </div>
+        `;
+      }
+
+      treeHTML += `
         <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; text-align:center;">
           Tap any department to view enrolled members.
         </p>
@@ -830,6 +899,19 @@ document.addEventListener('DOMContentLoaded', () => {
       treeHTML += `</div>`;
 
       openModal('Departments Tree', treeHTML);
+
+      // Event binding for dynamic add department trigger (Admin only)
+      if (isAdmin) {
+        const createBtn = document.getElementById('btn-create-dept-trigger');
+        if (createBtn) {
+          createBtn.addEventListener('click', () => {
+            closeModal();
+            setTimeout(() => {
+              openCreateDepartmentModal();
+            }, 320);
+          });
+        }
+      }
 
       // Event bindings for collapsible tree headers
       const categoryBlocks = document.querySelectorAll('.dept-category');
@@ -1470,11 +1552,231 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
       }
-
     } catch (e) {
       hideLoader();
       showToast('Could not load edit structures.', 'error');
     }
+  };
+
+  const openCreateDepartmentModal = () => {
+    const formHTML = `
+      <div class="form-view" style="padding-bottom: 20px;">
+        <form id="dept-create-form">
+          <div class="form-group">
+            <label for="create-dept-name">Department Name</label>
+            <input type="text" id="create-dept-name" class="form-control" placeholder="E.g. Dance Academy, Art School, Karate Club" required style="padding: 10px 12px; font-size: 0.875rem;">
+          </div>
+
+          <div class="form-group">
+            <label for="create-dept-category-select">Department Category</label>
+            <select id="create-dept-category-select" class="form-control" required style="padding: 10px 12px; font-size: 0.875rem;">
+              <option value="" disabled selected>Select Category</option>
+              <option value="Cultural">Cultural</option>
+              <option value="Sports">Sports</option>
+              <option value="Library">Library</option>
+              <option value="Social Service">Social Service</option>
+              <option value="General">General</option>
+              <option value="Others">Others</option>
+              <option value="CUSTOM">-- Add Custom Category --</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="create-dept-custom-category-group" style="display: none; margin-bottom: 16px;">
+            <label for="create-dept-custom-category">Custom Category Name</label>
+            <input type="text" id="create-dept-custom-category" class="form-control" placeholder="E.g. Science, Health, Education" style="padding: 10px 12px; font-size: 0.875rem;">
+          </div>
+
+          <div class="form-group">
+            <label for="create-dept-icon">Icon / Emoji</label>
+            <div style="display: flex; gap: 8px; flex-direction: column;">
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="create-dept-icon" class="form-control" placeholder="🎨" required maxlength="4" style="width: 70px; text-align: center; font-size: 1.25rem; padding: 6px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted); align-self: center;">Type any emoji or pick from the list below:</span>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; background: var(--background); border: 1px solid var(--border); padding: 8px; border-radius: var(--radius-sm);" class="emoji-picker-row">
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">🎨</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">🗣️</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">💃</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">📚</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">🧘‍♀️</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">💨</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">🌳</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">🏥</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">🤝</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">🏆</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">⚽</button>
+                <button type="button" class="btn-emoji-quick" style="background: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 1.1rem; cursor: pointer; transition: transform 0.1s ease;">📋</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="create-dept-about">About the Department</label>
+            <textarea id="create-dept-about" class="form-control" placeholder="Describe the activities, objectives, and history of this wing..." required style="padding: 12px; font-size: 0.875rem; height: 80px;"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="create-dept-timings">Timings</label>
+            <div class="input-container">
+              <i class="fa-regular fa-clock"></i>
+              <input type="text" id="create-dept-timings" class="form-control" placeholder="E.g. Saturdays, 4:00 PM - 6:00 PM" required style="padding-left: 40px; font-size: 0.875rem;">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+              <label for="create-dept-adm-fees">Admission Fees</label>
+              <input type="text" id="create-dept-adm-fees" class="form-control" placeholder="E.g. ₹500" required style="padding: 10px 12px; font-size: 0.875rem;">
+            </div>
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+              <label for="create-dept-mon-fees">Monthly Fees</label>
+              <input type="text" id="create-dept-mon-fees" class="form-control" placeholder="E.g. ₹200" required style="padding: 10px 12px; font-size: 0.875rem;">
+            </div>
+          </div>
+
+          <div class="dept-section-title" style="margin-top: 15px; margin-bottom: 10px;"><i class="fa-solid fa-user-tie"></i> Point of Contact (POC)</div>
+          <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; background: white; margin-bottom: 16px;">
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label for="create-dept-poc-name" style="font-size: 0.75rem; margin-bottom: 4px;">POC Full Name</label>
+              <input type="text" id="create-dept-poc-name" class="form-control" placeholder="E.g. Arundhati Sen" required style="padding: 8px 12px; font-size: 0.85rem;">
+            </div>
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label for="create-dept-poc-role" style="font-size: 0.75rem; margin-bottom: 4px;">POC Designation/Role</label>
+              <input type="text" id="create-dept-poc-role" class="form-control" placeholder="E.g. Teacher" required style="padding: 8px 12px; font-size: 0.85rem;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="create-dept-poc-phone" style="font-size: 0.75rem; margin-bottom: 4px;">POC Phone Number</label>
+              <input type="tel" id="create-dept-poc-phone" class="form-control" placeholder="10-digit number" required pattern="[0-9]{10}" title="Please enter a valid 10-digit mobile number" style="padding: 8px 12px; font-size: 0.85rem;">
+            </div>
+          </div>
+
+          <div class="modal-footer-btns" style="margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-create-dept" style="width: 48%;"><i class="fa-solid fa-xmark"></i> Cancel</button>
+            <button type="submit" class="btn btn-primary" style="width: 48%;"><i class="fa-solid fa-floppy-disk"></i> Save Department</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    openModal('Create New Department', formHTML, true);
+
+    // Bind dynamic modal header back button to return to tree
+    const headerBackBtn = modalOverlay.querySelector('.modal-back-btn');
+    if (headerBackBtn) {
+      const newHeaderBackBtn = headerBackBtn.cloneNode(true);
+      headerBackBtn.parentNode.replaceChild(newHeaderBackBtn, headerBackBtn);
+      newHeaderBackBtn.addEventListener('click', () => {
+        closeModal();
+        setTimeout(() => {
+          openDepartmentsModal();
+        }, 320);
+      });
+    }
+
+    // Toggle Custom Category text input
+    const categorySelect = document.getElementById('create-dept-category-select');
+    const customCategoryGroup = document.getElementById('create-dept-custom-category-group');
+    const customCategoryInput = document.getElementById('create-dept-custom-category');
+
+    categorySelect.addEventListener('change', (e) => {
+      if (e.target.value === 'CUSTOM') {
+        customCategoryGroup.style.display = 'block';
+        customCategoryInput.setAttribute('required', 'true');
+        customCategoryInput.focus();
+      } else {
+        customCategoryGroup.style.display = 'none';
+        customCategoryInput.removeAttribute('required');
+        customCategoryInput.value = '';
+      }
+    });
+
+    // Emoji Picker binding
+    const emojiInput = document.getElementById('create-dept-icon');
+    const emojiBtns = document.querySelectorAll('.btn-emoji-quick');
+    emojiBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        emojiInput.value = btn.innerText;
+        btn.style.transform = 'scale(0.9)';
+        setTimeout(() => { btn.style.transform = 'none'; }, 100);
+      });
+    });
+
+    // Cancel Button
+    document.getElementById('btn-cancel-create-dept').addEventListener('click', () => {
+      closeModal();
+      setTimeout(() => {
+        openDepartmentsModal();
+      }, 320);
+    });
+
+    // Form Submit Handler
+    const createForm = document.getElementById('dept-create-form');
+    createForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const nameVal = document.getElementById('create-dept-name').value.trim();
+      const catSelectVal = categorySelect.value;
+      const customCatVal = customCategoryInput.value.trim();
+      
+      const categoryVal = catSelectVal === 'CUSTOM' ? customCatVal : catSelectVal;
+      
+      if (!categoryVal) {
+        showToast('Please select or specify a category.', 'error');
+        return;
+      }
+
+      const iconVal = emojiInput.value.trim() || '📋';
+      const aboutVal = document.getElementById('create-dept-about').value.trim();
+      const timingsVal = document.getElementById('create-dept-timings').value.trim();
+      const admFeesVal = document.getElementById('create-dept-adm-fees').value.trim();
+      const monFeesVal = document.getElementById('create-dept-mon-fees').value.trim();
+
+      const pocVal = {
+        name: document.getElementById('create-dept-poc-name').value.trim(),
+        role: document.getElementById('create-dept-poc-role').value.trim(),
+        phone: document.getElementById('create-dept-poc-phone').value.trim()
+      };
+
+      // Generate a dynamic slugified ID
+      const categorySlug = categoryVal.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const nameSlug = nameVal.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const deptId = `${categorySlug}-${nameSlug}`;
+
+      showLoader('Creating new department...');
+      try {
+        await window.ApiService.addDepartment({
+          id: deptId,
+          name: nameVal,
+          category: categoryVal,
+          icon: iconVal,
+          about: aboutVal,
+          timings: timingsVal,
+          admissionFees: admFeesVal,
+          monthlyFees: monFeesVal,
+          poc: pocVal,
+          gallery: [],
+          executiveCommittee: [],
+          subCommittee: []
+        });
+
+        hideLoader();
+        showToast(`Department "${nameVal}" created successfully!`, 'success');
+        closeModal();
+
+        // Refresh stats and common organization gallery
+        loadDashboardStats();
+        renderCommonGallery();
+
+        // Open tree view modal to show the new addition
+        setTimeout(() => {
+          openDepartmentsModal();
+        }, 320);
+
+      } catch (err) {
+        hideLoader();
+        showToast('Failed to create department: ' + err.message, 'error');
+      }
+    });
   };
 
   const openUserManagementModal = async () => {

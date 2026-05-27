@@ -344,14 +344,14 @@ const delay = (ms = 400) => new Promise(resolve => setTimeout(resolve, ms));
 
 const ApiService = {
   // --- PERSONS MODULE ---
-  
+
   /**
    * Get list of all Persons
    * @returns {Promise<Array>}
    */
   getPersons: async () => {
     await delay(200);
-    
+
     if (activeCloudProvider === 'supabase' && supabaseClientInstance) {
       try {
         const { data, error } = await supabaseClientInstance
@@ -380,7 +380,7 @@ const ApiService = {
         console.warn('Firebase fetch failed. Falling back to local cache:', err);
       }
     }
-    
+
     return getStorageData(STORAGE_KEYS.PERSONS, SEED_PERSONS);
   },
 
@@ -431,7 +431,7 @@ const ApiService = {
    */
   getPersonById: async (id) => {
     await delay(150);
-    
+
     if (activeCloudProvider === 'supabase' && supabaseClientInstance) {
       try {
         const { data, error } = await supabaseClientInstance
@@ -465,12 +465,12 @@ const ApiService = {
    */
   updatePerson: async (id, updatedData) => {
     await delay(300);
-    
+
     // Update Local Storage (write-through)
     const persons = getStorageData(STORAGE_KEYS.PERSONS, SEED_PERSONS);
     const index = persons.findIndex(p => p.id === id);
     if (index === -1) throw new Error('Person not found.');
-    
+
     persons[index] = {
       ...persons[index],
       ...updatedData,
@@ -508,7 +508,7 @@ const ApiService = {
    */
   deletePerson: async (id) => {
     await delay(300);
-    
+
     // Update Local Storage
     const persons = getStorageData(STORAGE_KEYS.PERSONS, SEED_PERSONS);
     const filtered = persons.filter(p => p.id !== id);
@@ -558,7 +558,7 @@ const ApiService = {
   },
 
   // --- DEPARTMENTS MODULE ---
- 
+
   /**
    * Get all departments list
    * @returns {Promise<Array>}
@@ -666,6 +666,49 @@ const ApiService = {
   },
 
   /**
+   * Add a new Department
+   * @param {Object} deptData 
+   * @returns {Promise<Object>} The newly created Department
+   */
+  addDepartment: async (deptData) => {
+    await delay(300);
+    const newDept = {
+      ...deptData,
+      id: deptData.id || `dept-${Date.now()}`,
+      gallery: deptData.gallery || [],
+      executiveCommittee: deptData.executiveCommittee || [],
+      subCommittee: deptData.subCommittee || []
+    };
+
+    // Update Local Storage immediately (write-through cache)
+    const departments = getStorageData(STORAGE_KEYS.DEPARTMENTS, DEPARTMENTS_DB);
+    departments.push(newDept);
+    setStorageData(STORAGE_KEYS.DEPARTMENTS, departments);
+
+    if (activeCloudProvider === 'supabase' && supabaseClientInstance) {
+      try {
+        const payload = { ...newDept };
+        const { error } = await supabaseClientInstance
+          .from('departments')
+          .insert([payload]);
+        if (error) throw error;
+      } catch (err) {
+        console.error('Supabase department insert failed:', err);
+        throw new Error('Saved locally (Offline Mode), but cloud sync failed: ' + err.message);
+      }
+    } else if (activeCloudProvider === 'firebase' && firebaseDbInstance) {
+      try {
+        await firebaseDbInstance.collection('departments').doc(newDept.id).set(newDept);
+      } catch (err) {
+        console.error('Firebase department set failed:', err);
+        throw new Error('Saved locally (Offline Mode), but cloud sync failed: ' + err.message);
+      }
+    }
+
+    return newDept;
+  },
+
+  /**
    * Get list of persons registered in a specific department
    * @param {string} deptId 
    * @returns {Promise<Array>}
@@ -684,7 +727,7 @@ const ApiService = {
    */
   getEvents: async () => {
     await delay(200);
-    
+
     if (activeCloudProvider === 'supabase' && supabaseClientInstance) {
       try {
         const { data, error } = await supabaseClientInstance
@@ -767,14 +810,15 @@ const ApiService = {
     await delay(200);
     const persons = await ApiService.getPersons();
     const events = await ApiService.getEvents();
-    
+    const depts = await ApiService.getDepartments();
+
     // Count upcoming events
     const today = new Date().toISOString().split('T')[0];
     const upcomingEventsCount = events.filter(e => e.date >= today).length;
 
-    // Build department member counts mapping
+    // Build department member counts mapping dynamically using dynamic departments list
     const deptCounts = {};
-    DEPARTMENTS_DB.forEach(d => {
+    depts.forEach(d => {
       deptCounts[d.id] = persons.filter(p => p.departments.includes(d.id)).length;
     });
 
@@ -788,7 +832,7 @@ const ApiService = {
 
     return {
       totalPersons: persons.length,
-      totalDepartments: DEPARTMENTS_DB.length,
+      totalDepartments: depts.length,
       totalEvents: events.length,
       upcomingEvents: upcomingEventsCount,
       deptCounts,
@@ -813,11 +857,11 @@ const ApiService = {
   testConnection: async (config) => {
     try {
       if (config.provider === 'none') return true;
-      
+
       if (config.provider === 'supabase') {
         if (!window.supabase) throw new Error('Supabase SDK failed to load.');
         const testClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-        
+
         // Simple query limit 1 to verify table access
         const { error } = await testClient.from('persons').select('id').limit(1);
         if (error) {
@@ -825,21 +869,21 @@ const ApiService = {
         }
         return true;
       }
-      
+
       if (config.provider === 'firebase') {
         if (!window.firebase) throw new Error('Firebase SDK failed to load.');
         const parsed = JSON.parse(config.firebaseConfig);
-        
+
         const testAppId = `test-app-${Date.now()}`;
         const testApp = window.firebase.initializeApp(parsed, testAppId);
         const testDb = window.firebase.firestore(testApp);
-        
+
         // Fetch to check connection keys
         await testDb.collection('persons').limit(1).get();
         await testApp.delete();
         return true;
       }
-      
+
       throw new Error('Invalid provider type.');
     } catch (err) {
       console.error('Connection verification failed:', err);
@@ -854,11 +898,11 @@ const ApiService = {
     if (activeCloudProvider === 'none') {
       throw new Error('Please configure a cloud database first.');
     }
-    
+
     const localPersons = getStorageData(STORAGE_KEYS.PERSONS, SEED_PERSONS);
     const localEvents = getStorageData(STORAGE_KEYS.EVENTS, SEED_EVENTS);
     const localDepts = getStorageData(STORAGE_KEYS.DEPARTMENTS, DEPARTMENTS_DB);
-    
+
     if (activeCloudProvider === 'supabase' && supabaseClientInstance) {
       try {
         if (localPersons.length > 0) {
@@ -867,7 +911,7 @@ const ApiService = {
             .upsert(localPersons, { onConflict: 'id' });
           if (error) throw error;
         }
-        
+
         if (localEvents.length > 0) {
           const { error } = await supabaseClientInstance
             .from('events')
@@ -898,12 +942,12 @@ const ApiService = {
     } else if (activeCloudProvider === 'firebase' && firebaseDbInstance) {
       try {
         const batch = firebaseDbInstance.batch();
-        
+
         localPersons.forEach(person => {
           const docRef = firebaseDbInstance.collection('persons').doc(person.id);
           batch.set(docRef, person, { merge: true });
         });
-        
+
         localEvents.forEach(event => {
           const docRef = firebaseDbInstance.collection('events').doc(event.id);
           batch.set(docRef, event, { merge: true });
@@ -921,7 +965,7 @@ const ApiService = {
             batch.set(docRef, u, { merge: true });
           });
         }
-        
+
         await batch.commit();
       } catch (err) {
         throw new Error('Firebase upload failed: ' + err.message);
@@ -937,14 +981,14 @@ const ApiService = {
     if (activeCloudProvider === 'none') {
       throw new Error('Please configure a cloud database first.');
     }
-    
+
     if (activeCloudProvider === 'supabase' && supabaseClientInstance) {
       try {
         const { data: persons, error: pError } = await supabaseClientInstance
           .from('persons')
           .select('*');
         if (pError) throw pError;
-        
+
         const { data: events, error: eError } = await supabaseClientInstance
           .from('events')
           .select('*');
@@ -959,7 +1003,7 @@ const ApiService = {
           .from('users_accounts')
           .select('*');
         if (uError) throw uError;
-        
+
         setStorageData(STORAGE_KEYS.PERSONS, persons || []);
         setStorageData(STORAGE_KEYS.EVENTS, events || []);
 
@@ -989,7 +1033,7 @@ const ApiService = {
         personsSnap.forEach(doc => {
           persons.push(doc.data());
         });
-        
+
         const eventsSnap = await firebaseDbInstance.collection('events').get();
         const events = [];
         eventsSnap.forEach(doc => {
@@ -1008,7 +1052,7 @@ const ApiService = {
           const u = doc.data();
           uDb[u.username.toLowerCase()] = u;
         });
-        
+
         setStorageData(STORAGE_KEYS.PERSONS, persons);
         setStorageData(STORAGE_KEYS.EVENTS, events);
         setStorageData(STORAGE_KEYS.DEPARTMENTS, depts);
@@ -1051,12 +1095,12 @@ const ApiService = {
    */
   updateSubscription: async (personId, monthYearString) => {
     await delay(300);
-    
+
     // Update Local Storage immediately (write-through)
     const persons = getStorageData(STORAGE_KEYS.PERSONS, SEED_PERSONS);
     const index = persons.findIndex(p => p.id === personId);
     if (index === -1) throw new Error('Person not found.');
-    
+
     persons[index].subscriptionClearedUpto = monthYearString;
     setStorageData(STORAGE_KEYS.PERSONS, persons);
 
