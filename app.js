@@ -555,6 +555,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  // Expose globally for login page inline onclick trigger
+  window.openCloudSyncModal = openCloudSyncModal;
+
   // ==============================================
   // 5. NAVIGATION BINDINGS
   // ==============================================
@@ -1174,13 +1177,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       hideLoader();
       showToast('Could not load edit structures.', 'error');
-    }
-  };
-
-    } catch (e) {
-      hideLoader();
-      showToast('Could not load department details.', 'error');
-      console.error(e);
     }
   };
 
